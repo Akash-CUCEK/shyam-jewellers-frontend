@@ -1,10 +1,10 @@
-import earringsImg from "../../assets/earring.jpg";
-import ringsImg from "../../assets/ring.jpg";
-import payal from "../../assets/payal.jpg";
-import mangalsutraImg from "../../assets/mangalsutra.jpg";
-import nosepin from "../../assets/nosepin.png";
-import banglesImg from "../../assets/bangles.jpg";
-import chainsImg from "../../assets/chain.jpg";
+import earringsImg from "@/assets/earring.jpg";
+import ringsImg from "@/assets/ring.jpg";
+import payal from "@/assets/payal.jpg";
+import mangalsutraImg from "@/assets/mangalsutra.jpg";
+import nosepin from "@/assets/nosepin.png";
+import banglesImg from "@/assets/bangles.jpg";
+import chainsImg from "@/assets/chain.jpg";
 
 const categories = [
   { label: "EARRINGS", image: earringsImg },
