@@ -36,7 +36,7 @@ export default function ForgetPassword() {
       const response = await API.post(
         "/auth/api/v1/admin/forgetPassword",
         { email },
-        { headers: { requestId: uuidv4() } }
+        { headers: { "Content-Type": "application/json" } }
       );
       toast.success(res.data.response.response || "OTP sent to your email");
       setOtpSent(true);
@@ -83,7 +83,7 @@ export default function ForgetPassword() {
       const response = await API.post(
         "/auth/api/v1/admin/verifyPasswordOtp",
         { email, otp: fullOtp, password },
-        { headers: { requestId: uuidv4() } }
+        { headers: { "Content-Type": "application/json" } }
       );
       toast.success(res.data.response.response || "Password reset successful");
       setTimeout(() => navigate("/adminLogin"), 3000);

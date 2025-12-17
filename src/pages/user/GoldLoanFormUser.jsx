@@ -25,7 +25,7 @@ export default function GoldLoanFormUser({ onClose }) {
       const res = await axios.post(
         "http://localhost:8080/api/v1/gold-loan/request",
         formData,
-        { headers: { requestId: uuidv4() } }
+        { headers: { "Content-Type": "application/json" } }
       );
       toast.success(
         res.data?.response?.message || "Gold Loan Inquiry Submitted!"

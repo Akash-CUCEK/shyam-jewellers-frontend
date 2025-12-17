@@ -22,7 +22,11 @@ const OfferPhotoSection = () => {
       const res = await API.post(
         "/auth/api/v1/admin/getOfferPhoto",
         {},
-        { headers: { requestId: "test" } }
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       const response = res.data?.response;
@@ -76,7 +80,9 @@ const OfferPhotoSection = () => {
           imgUrl: uploadedUrl,
         },
         {
-          headers: { requestId: "frontend-" + Date.now() },
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 

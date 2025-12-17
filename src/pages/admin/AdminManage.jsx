@@ -39,11 +39,7 @@ const ManageAdmin = () => {
       const response = await axios.post(
         "http://localhost:8080/auth/api/v1/admin/deleteAdmin",
         { email: admin.email },
-        {
-          headers: {
-            requestId: "test",
-          },
-        }
+        { headers: { "Content-Type": "application/json" } }
       );
       Swal.fire(
         "Deleted!",

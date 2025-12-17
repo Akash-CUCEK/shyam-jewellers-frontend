@@ -74,7 +74,10 @@ export default function ProductManagement() {
       const res = await API.post(
         "/api/v1/products/search/name",
         { name: product.name },
-        { headers: { requestId: "test" } }
+        headers: {
+  "Content-Type": "application/json"
+}
+
       );
       const productDetails = res.data?.response;
       if (productDetails) {
@@ -91,7 +94,10 @@ export default function ProductManagement() {
       const res = await API.post(
         "/api/v1/products/search/name",
         { name: product.name },
-        { headers: { requestId: "test" } }
+        headers: {
+  "Content-Type": "application/json"
+}
+
       );
       const productDetails = res.data?.response;
       if (productDetails) {

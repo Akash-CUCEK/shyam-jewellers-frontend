@@ -33,7 +33,7 @@ export const logoutUser = () => {
                 const res = await axios.post(
                   "http://localhost:8080/api/v1/auth/logout",
                   { token },
-                  { headers: { requestId: uuidv4() } }
+                  { headers: { "Content-Type": "application/json" } }
                 );
 
                 const message =
