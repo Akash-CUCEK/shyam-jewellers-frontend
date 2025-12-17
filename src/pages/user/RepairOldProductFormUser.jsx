@@ -27,7 +27,7 @@ export default function RepairOldProductFormUser({ onClose }) {
       const res = await axios.post(
         "http://localhost:8080/api/v1/repair-old-product/request",
         formData,
-        { headers: { requestId: uuidv4() } }
+        { headers: { "Content-Type": "application/json" } }
       );
       toast.success(res.data?.response?.message || "Repair request submitted!");
       onClose();
