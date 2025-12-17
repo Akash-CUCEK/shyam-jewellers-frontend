@@ -18,7 +18,7 @@ export default function Login({ onClose }) {
       window.location.href = response.data.url;
     } catch (error) {
       console.error("Google login failed:", error);
-      toast.error("❌ Google login failed. Try again.");
+      toast.error("Google login failed. Try again.");
     }
   };
 

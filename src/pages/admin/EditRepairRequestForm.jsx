@@ -15,30 +15,28 @@ export default function EditRepairRequestForm({ requestId, onClose, onSaved }) {
 
   const [loading, setLoading] = useState(false);
 
+  // 🔹 Fetch request by ID
   useEffect(() => {
     if (!requestId) return;
 
     const fetchData = async () => {
       try {
         const res = await API.post("/api/common/getRepairRequestById", {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ serviceId: requestId }),
+          serviceId: requestId,
         });
 
-        const data = await res.json();
+        const data = res.data;
 
         if (data?.response) {
-          setFormData((prev) => ({
-            ...prev,
+          setFormData({
             serviceId: data.response.serviceId || "",
             status: data.response.status || "",
             name: data.response.name || "",
             address: data.response.address || "",
             mobileNumber: data.response.mobileNumber || "",
             notes: data.response.notes || "",
-          }));
+            email: sessionStorage.getItem("userEmail") || "",
+          });
         } else {
           Swal.fire("Error", "Failed to fetch request details.", "error");
         }
@@ -55,19 +53,15 @@ export default function EditRepairRequestForm({ requestId, onClose, onSaved }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 🔹 Submit update
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await API.put("/api/common/editRepairRequest", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const res = await API.put("/api/common/editRepairRequest", formData);
 
-      const data = await res.json();
+      const data = res.data;
 
       if (data?.response) {
         Swal.fire("Success", "Repair request updated successfully!", "success");
@@ -95,24 +89,26 @@ export default function EditRepairRequestForm({ requestId, onClose, onSaved }) {
         <h2 className="text-xl font-semibold mb-4 text-[#7c1d1d]">
           Edit Repair Request
         </h2>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="hidden" name="serviceId" value={formData.serviceId} />
+          <input type="hidden" value={formData.serviceId} />
 
           <input
             type="text"
             name="name"
-            placeholder="Customer Name"
             value={formData.name}
             onChange={handleChange}
+            placeholder="Customer Name"
             required
             className="w-full p-2 border rounded"
           />
+
           <input
             type="text"
             name="address"
-            placeholder="Address"
             value={formData.address}
             onChange={handleChange}
+            placeholder="Address"
             required
             className="w-full p-2 border rounded"
           />
@@ -120,20 +116,20 @@ export default function EditRepairRequestForm({ requestId, onClose, onSaved }) {
           <input
             type="text"
             name="mobileNumber"
-            placeholder="Mobile Number"
             value={formData.mobileNumber}
             onChange={handleChange}
+            placeholder="Mobile Number"
             required
             className="w-full p-2 border rounded"
           />
 
           <textarea
             name="notes"
-            placeholder="Notes"
             value={formData.notes}
             onChange={handleChange}
+            placeholder="Notes"
             className="w-full p-2 border rounded"
-          ></textarea>
+          />
 
           <select
             name="status"
@@ -155,22 +151,15 @@ export default function EditRepairRequestForm({ requestId, onClose, onSaved }) {
               type="button"
               onClick={onClose}
               disabled={loading}
-              className={`px-4 py-2 rounded ${
-                loading
-                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  : "bg-gray-300"
-              }`}
+              className="px-4 py-2 bg-gray-300 rounded"
             >
               Cancel
             </button>
+
             <button
               type="submit"
               disabled={loading}
-              className={`px-4 py-2 rounded text-white ${
-                loading
-                  ? "bg-[#7c1d1d80] cursor-not-allowed"
-                  : "bg-[#7c1d1d] hover:opacity-90"
-              }`}
+              className="px-4 py-2 bg-[#7c1d1d] text-white rounded"
             >
               {loading ? "Saving..." : "Save Changes"}
             </button>

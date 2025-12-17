@@ -10,41 +10,52 @@ export default function RepairRequestsAdmin() {
   const [search, setSearch] = useState("");
   const [viewRequest, setViewRequest] = useState(null);
   const [editRequestId, setEditRequestId] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
+  // 🔹 Fetch all repair requests
   const fetchRepairRequests = async () => {
     try {
-      const res = await API.post("/api/common/getAllRepairRequests", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await res.json();
+      const res = await API.post("/api/common/getAllRepairRequests");
+      const data = res.data;
 
       const repairRequestsArray = data?.response?.getAllServices || [];
 
-      if (Array.isArray(repairRequestsArray)) {
-        const mapped = repairRequestsArray.map((item) => ({
-          id: item.serviceId,
-          name: item.name || "N/A",
-          mobile: item.mobileNumber || "N/A",
-          date: item.createdAt
-            ? new Date(item.createdAt).toLocaleDateString()
-            : "N/A",
-          status: item.status || "Unknown",
-        }));
-        setRepairRequests(mapped);
-      } else {
-        setRepairRequests([]);
-      }
+      const mapped = repairRequestsArray.map((item) => ({
+        id: item.serviceId,
+        name: item.name || "N/A",
+        mobile: item.mobileNumber || "N/A",
+        date: item.createdAt
+          ? new Date(item.createdAt).toLocaleDateString()
+          : "N/A",
+        status: item.status || "Unknown",
+      }));
+
+      setRepairRequests(mapped);
     } catch (err) {
       console.error("Fetch repair requests error:", err);
+      Swal.fire("Error", "Failed to fetch repair requests", "error");
     }
   };
 
-  const handleDeleteClick = async (id) => {
+  useEffect(() => {
+    fetchRepairRequests();
+  }, []);
+
+  // 🔹 View single request
+  const handleViewClick = async (req) => {
+    try {
+      const res = await API.post("/api/common/getRepairRequestById", {
+        serviceId: req.id,
+      });
+
+      setViewRequest(res.data.response);
+    } catch (err) {
+      Swal.fire("Error", "Failed to fetch request details.", "error");
+    }
+  };
+
+  // 🔹 Delete request
+  const handleDeleteClick = (id) => {
     Swal.fire({
       title: "Are you sure?",
       text: "This request will be permanently deleted!",
@@ -56,70 +67,36 @@ export default function RepairRequestsAdmin() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const res = await API.delete("/api/common/deleteRepairRequest", {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ serviceId: id }),
+          await API.delete("/api/common/deleteRepairRequest", {
+            data: { serviceId: id },
           });
 
-          if (res.ok) {
-            const data = await res.json();
-            Swal.fire(
-              "Deleted!",
-              data?.response?.response || "The request has been deleted.",
-              "success"
-            );
-            fetchRepairRequests(); // refresh list
-          } else {
-            Swal.fire("Error", "Failed to delete the request.", "error");
-          }
+          Swal.fire("Deleted!", "Request deleted successfully.", "success");
+          fetchRepairRequests();
         } catch (err) {
-          console.error("Delete request error:", err);
-          Swal.fire("Error", "Something went wrong.", "error");
+          Swal.fire("Error", "Failed to delete request.", "error");
         }
       }
     });
   };
 
-  useEffect(() => {
-    fetchRepairRequests();
-  }, []);
-
-  const handleViewClick = async (req) => {
-    try {
-      const res = await API.fetch("/api/common/getRepairRequestById", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          requestId: "test",
-        },
-        body: JSON.stringify({ serviceId: req.id }),
-      });
-      const data = await res.json();
-      setViewRequest(data.response);
-    } catch (err) {
-      Swal.fire("Error", "Failed to fetch request details.", "error");
-    }
-  };
-
+  // 🔹 Search filter
   const filtered = repairRequests.filter(
     (r) =>
       r.name.toLowerCase().includes(search.toLowerCase()) ||
-      String(r.id).toLowerCase().includes(search.toLowerCase()) ||
+      String(r.id).includes(search) ||
       r.mobile.includes(search)
   );
 
   const getBadgeColor = (status) => {
     switch (status) {
-      case "Pending":
+      case "REQUESTED":
         return "bg-yellow-100 text-yellow-700";
-      case "In Progress":
+      case "IN_PROGRESS":
         return "bg-blue-100 text-blue-700";
-      case "Completed":
+      case "COMPLETED":
         return "bg-green-100 text-green-700";
-      case "Rejected":
+      case "CANCELLED":
         return "bg-red-100 text-red-700";
       default:
         return "";
@@ -135,7 +112,7 @@ export default function RepairRequestsAdmin() {
         </h1>
         <button
           onClick={() => setShowAddForm(true)}
-          className="bg-[#6e1414] text-white px-4 py-2 rounded-md font-semibold shadow hover:opacity-90"
+          className="bg-[#6e1414] text-white px-4 py-2 rounded-md font-semibold shadow"
         >
           Add Request
         </button>
@@ -147,8 +124,9 @@ export default function RepairRequestsAdmin() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name, mobile or ID"
-        className="w-full max-w-md p-2 border rounded-md mb-4 focus:outline-[#7c1d1d]"
+        className="w-full max-w-md p-2 border rounded-md mb-4"
       />
+
       {showAddForm && (
         <AddRepairRequestForm
           onClose={() => setShowAddForm(false)}
@@ -162,21 +140,21 @@ export default function RepairRequestsAdmin() {
       {/* Table */}
       <div className="overflow-x-auto bg-white rounded-lg shadow">
         <table className="w-full text-left">
-          <thead className="bg-[#f1f1f1] text-[#7c1d1d] font-medium">
+          <thead className="bg-[#f1f1f1] text-[#7c1d1d]">
             <tr>
               <th className="p-3">Request ID</th>
               <th className="p-3">Customer Name</th>
-              <th className="p-3">Mobile No</th>
-              <th className="p-3">Request Date</th>
+              <th className="p-3">Mobile</th>
+              <th className="p-3">Date</th>
               <th className="p-3">Status</th>
               <th className="p-3">Actions</th>
             </tr>
           </thead>
-          <tbody className="text-gray-700">
+          <tbody>
             {filtered.length > 0 ? (
               filtered.map((req, idx) => (
                 <tr
-                  key={`${req.id}-${idx}`}
+                  key={req.id}
                   className={idx % 2 === 0 ? "bg-white" : "bg-[#fce8e8]"}
                 >
                   <td className="p-3">{req.id}</td>
@@ -185,27 +163,24 @@ export default function RepairRequestsAdmin() {
                   <td className="p-3">{req.date}</td>
                   <td className="p-3">
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${getBadgeColor(
+                      className={`px-3 py-1 rounded-full text-sm ${getBadgeColor(
                         req.status
                       )}`}
                     >
                       {req.status}
                     </span>
                   </td>
-                  <td className="p-3 flex gap-3 text-[#7c1d1d]">
+                  <td className="p-3 flex gap-3">
                     <FaEye
-                      title="View"
-                      className="text-gray-600 cursor-pointer"
+                      className="cursor-pointer text-gray-600"
                       onClick={() => handleViewClick(req)}
                     />
                     <FaEdit
-                      title="Edit"
-                      className="text-blue-600 cursor-pointer"
+                      className="cursor-pointer text-blue-600"
                       onClick={() => setEditRequestId(req.id)}
                     />
                     <FaTrash
-                      title="Delete"
-                      className="text-red-600 cursor-pointer"
+                      className="cursor-pointer text-red-600"
                       onClick={() => handleDeleteClick(req.id)}
                     />
                   </td>
@@ -213,8 +188,8 @@ export default function RepairRequestsAdmin() {
               ))
             ) : (
               <tr>
-                <td className="p-3 text-center" colSpan="6">
-                  No matching requests found
+                <td colSpan="6" className="p-4 text-center">
+                  No requests found
                 </td>
               </tr>
             )}
@@ -222,43 +197,24 @@ export default function RepairRequestsAdmin() {
         </table>
       </div>
 
-      {showAddForm && (
-        <AddRepairRequestForm
-          onClose={() => setShowAddForm(false)}
-          onSuccess={() => {
-            setShowAddForm(false);
-            fetchRepairRequests();
-          }}
-        />
-      )}
-
-      {/* Footer */}
-      <div className="flex justify-between items-center text-sm text-gray-600 mt-3 px-1">
-        <span>Rows per page: 10 ⌄</span>
-        <span>
-          {filtered.length > 0
-            ? `1–${filtered.length} of ${repairRequests.length}`
-            : "0 of 0"}
-        </span>
-      </div>
       {editRequestId && (
         <EditRepairRequestForm
           requestId={editRequestId}
           onClose={() => setEditRequestId(null)}
           onSaved={() => {
             setEditRequestId(null);
-            fetchRepairRequests(); // refresh list after edit
+            fetchRepairRequests();
           }}
         />
       )}
 
       {/* View Modal */}
       {viewRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl p-6 relative">
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg max-w-2xl w-[90%] relative">
             <button
               onClick={() => setViewRequest(null)}
-              className="absolute top-2 right-3 text-red-500 text-xl font-bold hover:text-red-700"
+              className="absolute top-2 right-3 text-xl text-red-600"
             >
               ✕
             </button>
@@ -266,24 +222,22 @@ export default function RepairRequestsAdmin() {
               Repair Request Details
             </h2>
 
-            <div className="overflow-x-auto">
-              <table className="w-full border border-gray-200">
-                <tbody>
-                  {Object.entries(viewRequest).map(([key, value]) => (
-                    <tr key={key} className="border-b border-gray-200">
-                      <td className="px-4 py-2 font-medium capitalize bg-gray-50 w-1/3">
-                        {key}
-                      </td>
-                      <td className="px-4 py-2 text-gray-700">
-                        {typeof value === "object"
-                          ? JSON.stringify(value, null, 2)
-                          : value?.toString() || "-"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <table className="w-full border">
+              <tbody>
+                {Object.entries(viewRequest).map(([key, value]) => (
+                  <tr key={key}>
+                    <td className="border px-3 py-2 font-medium bg-gray-50">
+                      {key}
+                    </td>
+                    <td className="border px-3 py-2">
+                      {typeof value === "object"
+                        ? JSON.stringify(value)
+                        : value?.toString() || "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
