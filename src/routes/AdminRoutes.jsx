@@ -1,6 +1,5 @@
 import { Routes, Route } from "react-router-dom";
 
-// Pages
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import Home from "../pages/admin/Home";
 import ProductManagement from "../pages/admin/ProductManagement";
@@ -15,7 +14,6 @@ import HomeServiceRequests from "../pages/admin/HomeServiceRequests";
 import RepairRequestsAdmin from "../pages/admin/RepairRequestsAdmin";
 import OffersAdmin from "../pages/admin/OffersAdmin";
 
-// Route Guard
 import ProtectedAdminRoute from "./ProtectedAdminRoute";
 
 const AdminRoutes = () => {
