@@ -12,16 +12,19 @@ export const showLogoutToast = () => {
         <h3 className="text-lg font-semibold text-center">
           Logout Confirmation
         </h3>
+
         <p className="text-sm text-center">Are you sure you want to log out?</p>
 
         <div className="flex justify-center gap-4">
+          {/* ✅ YES BUTTON */}
           <button
             onClick={async () => {
               toast.dismiss(t.id);
 
               const token = sessionStorage.getItem("authToken");
+
               if (!token) {
-                toast.error("No token found!", {
+                toast.error("Token not found. Please login again.", {
                   duration: 4000,
                   position: "top-center",
                 });
@@ -33,22 +36,24 @@ export const showLogoutToast = () => {
                   token,
                 });
 
-                const message =
-                  res?.data?.response?.message || "✅ Logout successful!";
+                // ✅ EXACT backend message
+                const message = response.data.response.message;
 
                 toast.success(message, {
                   duration: 4000,
                   position: "top-center",
                 });
 
+                // ✅ clear session after success
                 sessionStorage.clear();
+
                 setTimeout(() => {
-                  window.location.href = "/adminLogin"; // ✅ Customize if needed
+                  window.location.href = "/adminLogin";
                 }, 1200);
               } catch (err) {
                 const errMsg =
                   err?.response?.data?.messages?.[0]?.message ||
-                  "❌ Logout failed";
+                  "Something went wrong. Please try again later.";
 
                 toast.error(errMsg, {
                   duration: 4000,
@@ -61,6 +66,7 @@ export const showLogoutToast = () => {
             Yes
           </button>
 
+          {/* ❌ NO BUTTON */}
           <button
             onClick={() => toast.dismiss(t.id)}
             className="px-4 py-2 rounded border border-[#7c1d1d] text-[#7c1d1d] hover:bg-[#fdf3f3] transition-all"
@@ -70,6 +76,9 @@ export const showLogoutToast = () => {
         </div>
       </div>
     ),
-    { position: "top-center", duration: 999999 }
+    {
+      position: "top-center",
+      duration: 999999,
+    }
   );
 };

@@ -41,15 +41,14 @@ export default function AdminLogin() {
         email,
         password,
       });
-      const msg = response?.data?.response?.message || "OTP sent!";
-      setMessage(msg);
+
+      setMessage(response.data.response.response);
+
       setOtpSent(true);
       setTimer(60);
       setCanResend(false);
     } catch (err) {
-      const errMsg =
-        err?.response?.data?.messages?.[0]?.message || "Login failed";
-      setMessage(errMsg);
+      setMessage(err?.response?.data?.errors?.[0]?.message);
     } finally {
       setLoading(false);
     }
@@ -64,15 +63,11 @@ export default function AdminLogin() {
         email,
         password,
       });
-      const msg =
-        response?.data?.response?.message || "OTP resent successfully!";
-      setMessage(msg);
+      setMessage(response.data.response.response);
       setTimer(60);
       setCanResend(false);
     } catch (err) {
-      const errMsg =
-        err?.response?.data?.messages?.[0]?.message || "Failed to resend OTP";
-      setMessage(errMsg);
+      setMessage(err?.response?.data?.errors?.[0]?.message);
     } finally {
       setLoading(false);
     }

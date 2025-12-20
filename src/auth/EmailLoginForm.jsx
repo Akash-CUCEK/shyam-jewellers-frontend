@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
-import axios from "axios";
-import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
 import { jwtDecode } from "jwt-decode";
+import { AuthContext } from "../context/AuthContext";
 import { API } from "../utils/API";
 
 const EmailLoginForm = ({ onSuccess }) => {
@@ -13,97 +11,109 @@ const EmailLoginForm = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [verified, setVerified] = useState(false);
+
   const inputRefs = useRef([]);
+  const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
 
-  const { login } = useContext(AuthContext);
-  const navigate = useNavigate();
-
-  // ⏱️ Timer logic
+  /* ⏱ OTP TIMER */
   useEffect(() => {
     let interval = null;
+
     if (otpSent && timer > 0) {
       interval = setInterval(() => {
         setTimer((prev) => prev - 1);
       }, 1000);
-    } else if (timer === 0) {
-      setCanResend(true);
-      clearInterval(interval);
     }
+
+    if (timer === 0) {
+      setCanResend(true);
+    }
+
     return () => clearInterval(interval);
   }, [otpSent, timer]);
 
-  // 📧 Request OTP
+  /* 📧 REQUEST OTP */
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+
     try {
       const response = await API.post("/api/v1/auth/logIn", { email });
+
       const backendMessage =
-        res.data?.response?.message || "✅ OTP sent successfully!";
+        response.data?.response?.message || "✅ OTP sent successfully!";
+
       setOtpSent(true);
       setTimer(60);
       setCanResend(false);
       setMessage(backendMessage);
     } catch (err) {
       const backendError =
-        err?.response?.data?.messages?.[0]?.message ||
+        err?.response?.data?.response?.message ||
         "❌ Failed to send OTP. Try again.";
+
       setMessage(backendError);
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔁 Resend OTP
+  /* 🔁 RESEND OTP */
   const handleResendOtp = async () => {
     setLoading(true);
     setMessage("");
+
     try {
       const response = await API.post("/api/v1/auth/logIn", { email });
-      const backendMessage = res.data?.response?.message || "✅ OTP resent!";
-      setMessage(backendMessage);
+
+      const backendMessage =
+        response.data?.response?.message || "✅ OTP resent successfully!";
+
       setTimer(60);
       setCanResend(false);
+      setMessage(backendMessage);
     } catch (err) {
       const backendError =
-        err?.response?.data?.messages?.[0]?.message ||
-        "❌ Failed to resend OTP. Try again.";
+        err?.response?.data?.response?.message || "❌ Failed to resend OTP.";
+
       setMessage(backendError);
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔢 Handle OTP input
+  /* 🔢 OTP INPUT */
   const handleOtpChange = (e, index) => {
     const val = e.target.value;
     if (!/^[0-9]?$/.test(val)) return;
+
     const newOtp = [...otp];
     newOtp[index] = val;
     setOtp(newOtp);
-    if (val && index < 5) inputRefs.current[index + 1].focus();
+
+    if (val && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
   };
 
   const handleKeyDown = (e, index) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1].focus();
-    } else if (e.key === "ArrowLeft" && index > 0) {
-      inputRefs.current[index - 1].focus();
-    } else if (e.key === "ArrowRight" && index < 5) {
-      inputRefs.current[index + 1].focus();
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
-  // ✅ Submit OTP
+  /* ✅ VERIFY OTP */
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
-    const fullOtp = otp.join("");
     setLoading(true);
     setMessage("");
+
+    const fullOtp = otp.join("");
 
     try {
       const response = await API.post("/api/v1/auth/verify", {
@@ -112,55 +122,50 @@ const EmailLoginForm = ({ onSuccess }) => {
       });
 
       const backendMessage =
-        res.data?.response?.message || "✅ Login successful!";
-      const token = res.data?.response?.token;
-      const user = res.data?.response?.user;
+        response.data?.response?.message || "✅ Login successful!";
 
-      if (token) {
-        const decoded = jwtDecode(token); // 🔓 Decode the token
-        const role = decoded.role || "USER"; // 🔐 Extract the role
+      const token = response.data?.response?.token;
+      const user = response.data?.response?.user;
 
-        sessionStorage.setItem("authToken", token);
-        sessionStorage.setItem("role", role); // ✅ Store role securely
+      if (!token) throw new Error("Token missing");
 
-        login(token); // context update
+      const decoded = jwtDecode(token);
+      const role = decoded?.role || "USER";
 
-        setVerified(true);
-        setMessage(backendMessage);
-
-        // 🔁 Redirect based on role
-        if (role === "ADMIN") {
-          navigate("/admin/home", {
-            state: { toastMessage: backendMessage },
-          });
-        } else {
-          navigate("/", {
-            state: { toastMessage: backendMessage },
-          });
-        }
-
-        if (onSuccess) onSuccess(token, backendMessage);
-      }
-
+      sessionStorage.setItem("authToken", token);
+      sessionStorage.setItem("role", role);
       if (user) {
         sessionStorage.setItem("userInfo", JSON.stringify(user));
       }
+
+      login(token);
+      setVerified(true);
+      setMessage(backendMessage);
+
+      if (onSuccess) onSuccess(token, backendMessage);
+
+      if (role === "ADMIN") {
+        navigate("/admin/home");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       const backendError =
-        err?.response?.data?.messages?.[0]?.message ||
-        "❌ OTP verification failed";
+        err?.response?.data?.response?.message || "❌ OTP verification failed";
+
       setMessage(backendError);
     } finally {
       setLoading(false);
     }
   };
 
+  /* 🖥 UI */
   return (
     <div className="w-full">
       {verified ? (
         <div className="flex justify-center items-center h-64">
           <div className="bg-white border border-green-500 p-6 rounded-xl shadow-md text-center">
-            <h2 className="text-2xl font-bold text-green-700 mb-2 animate-bounce">
+            <h2 className="text-2xl font-bold text-green-700 animate-bounce">
               {message}
             </h2>
           </div>
@@ -175,42 +180,42 @@ const EmailLoginForm = ({ onSuccess }) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#7c1d1d]"
+                className="w-full border rounded-full px-4 py-2"
               />
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#7c1d1d] text-white font-semibold py-2 rounded-full hover:bg-[#5e1616] transition disabled:opacity-50"
+                className="w-full bg-[#7c1d1d] text-white py-2 rounded-full"
               >
                 {loading ? "Sending..." : "Request OTP"}
               </button>
             </form>
           ) : (
             <form onSubmit={handleOtpSubmit} className="space-y-4 text-center">
-              <p className="text-sm text-gray-700">
-                Enter the OTP sent to <strong>{email}</strong>
+              <p className="text-sm">
+                Enter OTP sent to <strong>{email}</strong>
               </p>
+
               <div className="flex justify-center gap-2">
                 {otp.map((digit, i) => (
                   <input
                     key={i}
-                    type="text"
                     maxLength={1}
                     value={digit}
                     ref={(el) => (inputRefs.current[i] = el)}
                     onChange={(e) => handleOtpChange(e, i)}
                     onKeyDown={(e) => handleKeyDown(e, i)}
-                    className="w-10 h-10 text-center text-lg border border-gray-300 rounded-md focus:ring-2 focus:ring-[#7c1d1d] outline-none"
+                    className="w-10 h-10 text-center border rounded-md"
                   />
                 ))}
               </div>
 
-              <div className="text-sm mt-2 text-gray-600">
+              <div className="text-sm text-gray-600">
                 {canResend ? (
                   <button
                     type="button"
                     onClick={handleResendOtp}
-                    className="text-[#7c1d1d] font-semibold hover:underline"
+                    className="text-[#7c1d1d] font-semibold"
                   >
                     Resend OTP
                   </button>
@@ -222,16 +227,15 @@ const EmailLoginForm = ({ onSuccess }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#7c1d1d] text-white font-semibold py-2 rounded-full hover:bg-[#5e1616] transition disabled:opacity-50"
+                className="w-full bg-[#7c1d1d] text-white py-2 rounded-full"
               >
                 {loading ? "Verifying..." : "Verify OTP & Login"}
               </button>
             </form>
           )}
+
           {message && !verified && (
-            <p className="text-sm text-center mt-4 text-gray-700 font-medium">
-              {message}
-            </p>
+            <p className="text-center text-sm mt-4">{message}</p>
           )}
         </div>
       )}
