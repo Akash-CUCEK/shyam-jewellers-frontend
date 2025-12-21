@@ -16,7 +16,7 @@ export const showLogoutToast = () => {
         <p className="text-sm text-center">Are you sure you want to log out?</p>
 
         <div className="flex justify-center gap-4">
-          {/* ✅ YES BUTTON */}
+          {/* ✅ YES */}
           <button
             onClick={async () => {
               toast.dismiss(t.id);
@@ -24,27 +24,36 @@ export const showLogoutToast = () => {
               const token = sessionStorage.getItem("authToken");
 
               if (!token) {
-                toast.error("Token not found. Please login again.", {
+                toast.error("Session expired. Please login again.", {
                   duration: 4000,
                   position: "top-center",
                 });
+                sessionStorage.clear();
+                window.location.href = "/adminLogin";
                 return;
               }
 
               try {
-                const response = await API.post("/auth/api/v1/admin/logout", {
-                  token,
-                });
+                const response = await API.post(
+                  "/auth/api/v1/admin/logout",
+                  {}, // ❌ BODY EMPTY (IMPORTANT)
+                  {
+                    headers: {
+                      Authorization: `Bearer ${token}`, // ✅ HEADER
+                    },
+                    withCredentials: true, // ✅ refreshToken cookie
+                  }
+                );
 
-                // ✅ EXACT backend message
-                const message = response.data.response.message;
+                const message =
+                  response?.data?.response?.message || "Logout successful";
 
                 toast.success(message, {
                   duration: 4000,
                   position: "top-center",
                 });
 
-                // ✅ clear session after success
+                // ✅ CLEANUP
                 sessionStorage.clear();
 
                 setTimeout(() => {
@@ -53,7 +62,7 @@ export const showLogoutToast = () => {
               } catch (err) {
                 const errMsg =
                   err?.response?.data?.messages?.[0]?.message ||
-                  "Something went wrong. Please try again later.";
+                  "Something went wrong. Please try again.";
 
                 toast.error(errMsg, {
                   duration: 4000,
@@ -66,7 +75,7 @@ export const showLogoutToast = () => {
             Yes
           </button>
 
-          {/* ❌ NO BUTTON */}
+          {/* ❌ NO */}
           <button
             onClick={() => toast.dismiss(t.id)}
             className="px-4 py-2 rounded border border-[#7c1d1d] text-[#7c1d1d] hover:bg-[#fdf3f3] transition-all"

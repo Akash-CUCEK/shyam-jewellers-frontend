@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
 import { FiMail, FiLock } from "react-icons/fi";
 import { useNavigate, Link } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
 import { jwtDecode } from "jwt-decode";
 import { AuthContext } from "../context/AuthContext";
 import { API } from "../utils/API";
