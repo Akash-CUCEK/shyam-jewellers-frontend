@@ -17,15 +17,20 @@ export default function ProductManagement() {
   const [viewProduct, setViewProduct] = useState(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
 
-  // ✅ Fetch products
+  // ✅ FETCH ALL PRODUCTS (FINAL FIX)
   const fetchProducts = async () => {
+    setLoading(true);
     try {
-      const res = await API.post("/api/v1/products/search/getAllProducts", {});
-      const response = res.data?.response?.products;
-      setProducts(Array.isArray(response) ? response : []);
+      const res = await API.post("/api/v1/products/search/getAllProducts");
+
+      const productList = res.data?.response?.products;
+      setProducts(Array.isArray(productList) ? productList : []);
     } catch (err) {
       console.error("❌ Error fetching products:", err);
-      setToast({ name: "Error", message: "Failed to load products" });
+      setToast({
+        name: "Error",
+        message: "Failed to load products",
+      });
     } finally {
       setLoading(false);
     }
@@ -35,7 +40,7 @@ export default function ProductManagement() {
     fetchProducts();
   }, []);
 
-  // ✅ Delete product
+  // ✅ DELETE PRODUCT
   const handleDeleteClick = async (product) => {
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -49,54 +54,52 @@ export default function ProductManagement() {
     if (!result.isConfirmed) return;
 
     try {
-      const response = await API.delete("/api/v1/products/deleteProduct", {
+      const res = await API.delete("/api/v1/products/deleteProduct", {
         data: { name: product.name },
       });
 
       Swal.fire(
         "Deleted!",
-        response.data?.response || "Product deleted.",
+        res.data?.response || "Product deleted successfully",
         "success"
       );
 
       fetchProducts();
-    } catch (error) {
-      console.error("Error deleting product:", error);
-      Swal.fire("Error", "Failed to delete product.", "error");
+    } catch (err) {
+      console.error("❌ Delete error:", err);
+      Swal.fire("Error", "Failed to delete product", "error");
     }
   };
 
-  // ✅ EDIT PRODUCT (FIXED)
+  // ✅ EDIT PRODUCT
   const handleEditClick = async (product) => {
     try {
       const res = await API.post("/api/v1/products/search/name", {
         name: product.name,
       });
 
-      const productDetails = res.data?.response;
-      if (productDetails) {
-        setEditingProduct(productDetails);
+      if (res.data?.response) {
+        setEditingProduct(res.data.response);
       }
     } catch (err) {
-      console.error("❌ Failed to fetch product for edit", err);
-      Swal.fire("Error", "Failed to fetch product details.", "error");
+      console.error(err);
+      Swal.fire("Error", "Failed to fetch product details", "error");
     }
   };
 
-  // ✅ VIEW PRODUCT (FIXED)
+  // ✅ VIEW PRODUCT
   const handleViewClick = async (product) => {
     try {
       const res = await API.post("/api/v1/products/search/name", {
         name: product.name,
       });
 
-      const productDetails = res.data?.response;
-      if (productDetails) {
-        setViewProduct(productDetails);
+      if (res.data?.response) {
+        setViewProduct(res.data.response);
       }
     } catch (err) {
-      console.error("❌ Failed to fetch product", err);
-      Swal.fire("Error", "Failed to fetch product details.", "error");
+      console.error(err);
+      Swal.fire("Error", "Failed to fetch product details", "error");
     }
   };
 
@@ -167,7 +170,7 @@ export default function ProductManagement() {
                   Loading...
                 </td>
               </tr>
-            ) : products.length ? (
+            ) : products.length > 0 ? (
               products.map((prod, idx) => (
                 <tr key={idx} className={idx % 2 ? "bg-[#f9eaea]" : ""}>
                   <td className="p-3">{prod.name}</td>
@@ -178,9 +181,18 @@ export default function ProductManagement() {
                     {prod.isAvailable ? "Active" : "Inactive"}
                   </td>
                   <td className="p-3 flex gap-3">
-                    <FaEye onClick={() => handleViewClick(prod)} />
-                    <FaEdit onClick={() => handleEditClick(prod)} />
-                    <FaTrash onClick={() => handleDeleteClick(prod)} />
+                    <FaEye
+                      className="cursor-pointer"
+                      onClick={() => handleViewClick(prod)}
+                    />
+                    <FaEdit
+                      className="cursor-pointer"
+                      onClick={() => handleEditClick(prod)}
+                    />
+                    <FaTrash
+                      className="cursor-pointer"
+                      onClick={() => handleDeleteClick(prod)}
+                    />
                   </td>
                 </tr>
               ))
