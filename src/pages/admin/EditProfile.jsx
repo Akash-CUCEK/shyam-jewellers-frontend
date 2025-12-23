@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import axios from "axios";
 import Cropper from "react-easy-crop";
 import { getCroppedImg } from "../../utils/cropUtils";
 import { ImageUploader } from "../../utils/ImageUploader";
 import { Pencil, User } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { API } from "../../utils/API"; // ✅ FIX
 
 export default function EditProfileModal({ onClose }) {
   const [image, setImage] = useState(null);
@@ -24,43 +24,47 @@ export default function EditProfileModal({ onClose }) {
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setImage(imageUrl);
-      setShowCropper(true);
-    }
+    if (!file) return;
+
+    const imageUrl = URL.createObjectURL(file);
+    setImage(imageUrl);
+    setShowCropper(true);
   };
 
   const cropImage = async () => {
-    const cropped = await getCroppedImg(
-      image,
-      croppedAreaPixels,
-      "cropped.jpeg"
-    );
-    setCroppedImage(cropped);
-    setShowCropper(false);
+    try {
+      const cropped = await getCroppedImg(
+        image,
+        croppedAreaPixels,
+        "cropped.jpeg"
+      );
+      setCroppedImage(cropped);
+      setShowCropper(false);
+    } catch {
+      toast.error("Failed to crop image");
+    }
   };
 
-  // ✅ Only run once
+  // ✅ fetch profile once
   useEffect(() => {
     if (fetchedOnce.current) return;
     fetchedOnce.current = true;
 
     const fetchProfile = async () => {
       const email = sessionStorage.getItem("email");
-      if (!email) return toast.error("No email found in session");
+      if (!email) return toast.error("No email found");
 
       try {
         const res = await API.post("/auth/api/v1/admin/getAdminByEmail", {
           email,
         });
-        const data = res.data.response;
 
-        setFullName(data.name || "");
-        setPhone(data.phoneNumber || "");
-        if (data.imageUrl) setCroppedImage(data.imageUrl);
-      } catch (error) {
-        toast.error("Failed to load profile data");
+        const data = res.data.response;
+        setFullName(data?.name || "");
+        setPhone(data?.phoneNumber || "");
+        if (data?.imageUrl) setCroppedImage(data.imageUrl);
+      } catch {
+        toast.error("Failed to load profile");
       }
     };
 
@@ -72,33 +76,30 @@ export default function EditProfileModal({ onClose }) {
     setIsSaving(true);
 
     try {
-      let uploadedUrls = [];
+      let uploadedUrl = croppedImage;
 
       if (croppedImage && !croppedImage.startsWith("http")) {
-        const response = await fetch(croppedImage);
-        const blob = await response.blob();
-        const file = new File([blob], "profile.jpg", { type: "image/jpeg" });
-        uploadedUrls = await ImageUploader([file]);
+        const blob = await fetch(croppedImage).then((r) => r.blob());
+        const file = new File([blob], "profile.jpg", {
+          type: "image/jpeg",
+        });
+        const urls = await ImageUploader([file]);
+        uploadedUrl = urls[0];
       }
 
       const email = sessionStorage.getItem("email");
-      const payload = {
+
+      await API.post("/auth/api/v1/admin/editAdmin", {
         name: fullName,
         email,
         phoneNumber: phone,
-        imageUrl: uploadedUrls[0] || croppedImage || null,
-      };
+        imageUrl: uploadedUrl,
+      });
 
-      const res = await API.post("/auth/api/v1/admin/editAdmin", payload);
-
-      toast.success(res.data.message || "Profile updated successfully");
+      toast.success("Profile updated successfully");
       onClose();
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.messages?.[0]?.message ||
-        err.response?.data?.message ||
-        "Failed to edit profile";
-      toast.error(errorMsg);
+      toast.error(err.response?.data?.message || "Failed to update profile");
     } finally {
       setIsSaving(false);
     }
@@ -111,8 +112,9 @@ export default function EditProfileModal({ onClose }) {
           Edit Profile
         </h2>
 
+        {/* Avatar */}
         <div className="flex justify-center mb-4">
-          <div className="relative w-28 h-28 rounded-full border border-gray-300 bg-gray-100 flex items-center justify-center overflow-hidden">
+          <div className="relative w-28 h-28 rounded-full border bg-gray-100 overflow-hidden">
             {croppedImage ? (
               <img
                 src={croppedImage}
@@ -120,10 +122,10 @@ export default function EditProfileModal({ onClose }) {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <User className="text-gray-400 w-12 h-12" />
+              <User className="w-full h-full p-6 text-gray-400" />
             )}
-            <label className="absolute bottom-1 right-1 bg-white border border-gray-300 p-1 rounded-full shadow cursor-pointer hover:bg-gray-100 transition">
-              <Pencil className="text-[#7c1d1d] w-4 h-4" />
+            <label className="absolute bottom-1 right-1 bg-white p-1 rounded-full cursor-pointer">
+              <Pencil className="w-4 h-4 text-[#7c1d1d]" />
               <input
                 type="file"
                 accept="image/*"
@@ -135,52 +137,42 @@ export default function EditProfileModal({ onClose }) {
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-gray-700 mb-1">Full Name</label>
-            <input
-              type="text"
-              placeholder="Enter your full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-[#d4af37]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 mb-1">Phone Number</label>
-            <input
-              type="text"
-              placeholder="Enter your phone number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring focus:ring-[#d4af37]"
-            />
-          </div>
+          <input
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Full Name"
+            className="w-full border p-2 rounded"
+          />
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Phone Number"
+            className="w-full border p-2 rounded"
+          />
 
           <div className="flex justify-end gap-4 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-600 hover:border-[#7c1d1d] hover:text-[#7c1d1d] hover:bg-[#fde8e8] transition"
+              className="px-4 py-2 border rounded"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className={`${
-                isSaving ? "opacity-60 cursor-not-allowed" : ""
-              } bg-[#7c1d1d] hover:bg-[#621010] text-white px-6 py-2 rounded-md transition-opacity duration-200`}
+              className="bg-[#7c1d1d] text-white px-6 py-2 rounded"
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>
 
+        {/* Cropper */}
         {showCropper && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-            <div className="bg-white p-4 rounded-md shadow-lg w-11/12 max-w-lg">
-              <div className="relative w-full h-64">
+            <div className="bg-white p-4 rounded w-full max-w-lg">
+              <div className="relative h-64">
                 <Cropper
                   image={image}
                   crop={crop}
@@ -192,14 +184,9 @@ export default function EditProfileModal({ onClose }) {
                 />
               </div>
               <div className="flex justify-end gap-4 pt-4">
+                <button onClick={() => setShowCropper(false)}>Cancel</button>
                 <button
-                  className="px-4 py-1 border rounded hover:bg-gray-200"
-                  onClick={() => setShowCropper(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="px-4 py-1 bg-[#7c1d1d] text-white rounded"
+                  className="bg-[#7c1d1d] text-white px-4 py-1 rounded"
                   onClick={cropImage}
                 >
                   Crop & Save

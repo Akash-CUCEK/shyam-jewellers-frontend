@@ -106,7 +106,7 @@ export default function AdminLogin() {
       });
 
       const msg = response?.data?.response?.message || "Login successful!";
-      const token = response?.data?.response?.token;
+      const token = response?.data?.response?.accessToken;
 
       if (token) {
         const decoded = jwtDecode(token);

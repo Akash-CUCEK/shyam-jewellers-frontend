@@ -24,7 +24,6 @@ API.interceptors.request.use(
 
 API.interceptors.response.use(
   (response) => {
-    console.log("✅ Response:", response);
     return response;
   },
   (error) => {

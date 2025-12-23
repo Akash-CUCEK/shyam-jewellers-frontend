@@ -31,9 +31,9 @@ ChartJS.register(
   Legend
 );
 
-const red = "#7c1d1d";
 const lightGrey = "#f1f1f1";
 
+/* 🔹 Dashboard Card */
 const DashboardCard = ({ icon, title, value }) => (
   <div className="bg-[#7c1d1d] rounded-lg p-4 shadow hover:shadow-[#7c1d1d] transition">
     <div className="flex items-center justify-between">
@@ -47,22 +47,22 @@ const DashboardCard = ({ icon, title, value }) => (
 );
 
 export default function Home() {
-  const location = useLocation(); // ✅ Now inside component
-  const navigate = useNavigate(); // ✅ Now inside component
+  const location = useLocation();
+  const navigate = useNavigate();
 
+  /* ✅ SUCCESS TOAST – show only once */
   useEffect(() => {
     if (location.state?.toastMessage) {
-      // 🛑 Check session flag to prevent double toast
       const shown = sessionStorage.getItem("toastShown");
       if (!shown) {
         toast.success(location.state.toastMessage);
         sessionStorage.setItem("toastShown", "true");
-
         navigate(location.pathname, { replace: true, state: {} });
       }
     }
-  }, [location]);
+  }, [location, navigate]);
 
+  /* 📊 Charts Data */
   const barData = {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
     datasets: [
@@ -87,7 +87,7 @@ export default function Home() {
 
   return (
     <div className="text-[#f1f1f1] font-sans">
-      {/* Top Cards */}
+      {/* 🔝 TOP CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <DashboardCard
           icon={<Layers3 color={lightGrey} />}
@@ -111,7 +111,7 @@ export default function Home() {
         />
       </div>
 
-      {/* Charts */}
+      {/* 📈 CHARTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold text-[#7c1d1d] mb-2">
@@ -121,6 +121,7 @@ export default function Home() {
             <Bar data={barData} options={{ maintainAspectRatio: false }} />
           </div>
         </div>
+
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold text-[#7c1d1d] mb-2">
             Product Category
@@ -131,7 +132,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Request Summary */}
+      {/* 🔧 REQUEST SUMMARY */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <DashboardCard
           icon={<Wrench color={lightGrey} />}
@@ -153,53 +154,6 @@ export default function Home() {
           title="Gold Loan Requests"
           value="9"
         />
-      </div>
-
-      {/* Newly Requested Orders Table */}
-      <div className="overflow-x-auto bg-white rounded-lg shadow">
-        <h3 className="text-lg font-semibold text-[#7c1d1d] p-4">
-          Newly Requested Orders
-        </h3>
-        <table className="w-full text-left">
-          <thead className="bg-[#f1f1f1] text-[#7c1d1d] font-medium">
-            <tr>
-              <th className="p-3">Customer</th>
-              <th className="p-3">Product</th>
-              <th className="p-3">Date</th>
-              <th className="p-3">Status</th>
-            </tr>
-          </thead>
-          <tbody className="text-gray-700">
-            {[
-              ["Priya Sharma", "Gold Necklace", "April 24, 2024", "Pending"],
-              ["Amit Patel", "Diamond Bracelet", "April 24, 2024", "Confirmed"],
-              ["Jyoti Verma", "Silver Ring", "April 24, 2024", "Pending"],
-              ["Vikram Joshi", "Gold Earrings", "April 24, 2024", "Confirmed"],
-            ].map(([name, product, date, status], idx) => (
-              <tr
-                key={idx}
-                className={`border-b ${
-                  idx % 2 !== 0 ? "bg-[#f9eaea]" : "bg-white"
-                }`}
-              >
-                <td className="p-3">{name}</td>
-                <td className="p-3">{product}</td>
-                <td className="p-3">{date}</td>
-                <td className="p-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      status === "Confirmed"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );
