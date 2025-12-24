@@ -3,6 +3,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const API = axios.create({
   baseURL: API_URL,
+  withCredentials: true, // 🔥 REQUIRED FOR SET-COOKIE
 });
 
 const noAuthEndpoints = ["/auth/api/v1/login"];
@@ -27,9 +28,6 @@ API.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      console.error("❌ Unauthorized, token invalid or expired");
-    }
     return Promise.reject(error);
   }
 );
