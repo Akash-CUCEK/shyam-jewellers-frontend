@@ -2,10 +2,24 @@
   "navigationFallback": {
     "rewrite": "/index.html"
   },
+  "forwardingGateway": {
+    "requiredHeaders": [
+      "Authorization",
+      "Cookie"
+    ],
+    "allowedForwardedHosts": [
+      "shyam-jewellers-api-xxx.azurewebsites.net"
+    ],
+    "allowedForwardedHeaders": [
+      "Authorization",
+      "Cookie",
+      "Content-Type"
+    ]
+  },
   "routes": [
     {
-      "route": "/api/{*path}",
-      "rewrite": "https://shyam-jewellers-api-xxx.azurewebsites.net/{path}"
+      "route": "/api/*",
+      "allowedRoles": [ "anonymous" ]
     }
   ]
 }
