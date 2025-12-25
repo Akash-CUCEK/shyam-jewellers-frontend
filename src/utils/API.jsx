@@ -98,7 +98,13 @@ API.interceptors.response.use(
           });
 
           setTimeout(() => {
-            window.location.href = "/login";
+            const currentPath = window.location.pathname;
+
+            if (currentPath.startsWith("/admin")) {
+              window.location.href = "/adminLogin";
+            } else {
+              window.location.href = "/login";
+            }
           }, 2000);
         }
 
