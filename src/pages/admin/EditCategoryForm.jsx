@@ -57,14 +57,11 @@ export default function EditCategoryForm({ categoryId, onClose, onSuccess }) {
       onSuccess();
       onClose();
     } catch (err) {
-      console.error(err);
       Swal.fire(
         "Error",
-        err.response?.data?.message || "Update failed",
+        err.response?.data?.errors?.messages?.[0]?.message || "Update failed",
         "error"
       );
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -1,0 +1,11 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html"
+  },
+  "routes": [
+    {
+      "route": "/api/{*path}",
+      "rewrite": "https://shyam-jewellers-api-xxx.azurewebsites.net/{path}"
+    }
+  ]
+}
