@@ -16,8 +16,20 @@ const noAuthEndpoints = [
   "/api/v1/auth/verify",
 ];
 
-// 🔒 Prevent multiple session-expired toasts
+// 🔐 GLOBAL LOCKS
+let isRefreshing = false;
+let refreshSubscribers = [];
 let sessionExpiredShown = false;
+
+// 🔁 Queue helpers
+function subscribeTokenRefresh(cb) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(newToken) {
+  refreshSubscribers.forEach((cb) => cb(newToken));
+  refreshSubscribers = [];
+}
 
 API.interceptors.request.use(
   (config) => {
@@ -39,65 +51,55 @@ API.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !noAuthEndpoints.some((url) => originalRequest.url?.includes(url))
+    ) {
       originalRequest._retry = true;
+
+      // 🔒 If refresh already in progress → wait
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((newToken) => {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            resolve(API(originalRequest));
+          });
+        });
+      }
+
+      isRefreshing = true;
 
       try {
         const res = await API.post("/refreshToken");
 
-        const newToken = res?.data?.response?.token;
-        if (!newToken) throw new Error("No token");
+        const newToken = res?.data?.response?.accessToken;
+        if (!newToken) throw new Error("Refresh failed");
 
         sessionStorage.setItem("authToken", newToken);
+        isRefreshing = false;
+
+        onRefreshed(newToken);
+
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
         return API(originalRequest);
       } catch (refreshError) {
+        isRefreshing = false;
+        refreshSubscribers = [];
         sessionStorage.clear();
 
-        // 🔥 Show toast only once
         if (!sessionExpiredShown) {
           sessionExpiredShown = true;
 
-          toast.custom(
-            (t) => (
-              <div
-                className={`bg-[#0f172a] border border-red-500/30 text-white
-                rounded-xl shadow-xl p-5 w-[360px]
-                ${t.visible ? "animate-enter" : "animate-leave"}`}
-              >
-                <h4 className="font-semibold text-red-400 mb-1">
-                  🔒 Session Expired
-                </h4>
-
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  Your session has expired for security reasons.
-                  <br />
-                  Please login again to continue.
-                </p>
-
-                <button
-                  onClick={() => {
-                    toast.dismiss(t.id);
-                    window.location.href = "/login";
-                  }}
-                  className="mt-4 w-full rounded-lg bg-red-600
-                  hover:bg-red-700 py-2 text-sm font-semibold"
-                >
-                  Login Again
-                </button>
-
-                <p className="mt-2 text-xs text-gray-400 text-center">
-                  ⏳ Auto redirecting…
-                </p>
-              </div>
-            ),
-            { duration: 3000 }
-          );
+          toast.error("🔒 Session expired. Please login again.", {
+            position: "top-center",
+            duration: 4000,
+          });
 
           setTimeout(() => {
             window.location.href = "/login";
-          }, 3000);
+          }, 2000);
         }
 
         return Promise.reject(refreshError);
