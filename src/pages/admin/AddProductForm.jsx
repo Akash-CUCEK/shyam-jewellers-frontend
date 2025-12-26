@@ -2,8 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { ImageUploader } from "../../utils/ImageUploader";
 import { API } from "../../utils/API";
 
+/* 🔹 Reusable Label */
+const FieldLabel = ({ text, required = false }) => (
+  <label className="font-semibold text-sm text-gray-700">
+    {text}
+    {required && <span className="text-red-600"> *</span>}
+  </label>
+);
+
 export default function AddProductForm({ onCancel, setToast }) {
-  const formRef = useRef(null);
+  const modalRef = useRef(null);
+  const fetchedOnceRef = useRef(false);
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -24,22 +33,18 @@ export default function AddProductForm({ onCancel, setToast }) {
     imageFile: null,
   });
 
-  /* 🔝 FORM OPEN → SCROLL TO TOP */
-  useEffect(() => {
-    formRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
   /* 📦 FETCH CATEGORIES */
   useEffect(() => {
+    if (fetchedOnceRef.current) return;
+    fetchedOnceRef.current = true;
+
     const fetchCategories = async () => {
       try {
-        const res = await API.get("/api/categories/getAllCategory");
+        const res = await API.post("/api/categories/getAllCategory");
         const list = res?.data?.response?.getCategoriesResponseDTO || [];
-
-        // ✅ only active categories
         setCategories(list.filter((c) => c.status === true));
       } catch (err) {
-        console.error("Failed to load categories", err);
+        console.error("❌ Failed to load categories", err);
       }
     };
 
@@ -47,20 +52,20 @@ export default function AddProductForm({ onCancel, setToast }) {
   }, []);
 
   const inputStyle =
-    "border border-gray-300 p-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-[#7c1d1d] text-[#7c1d1d]";
+    "border border-gray-300 p-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-[#7c1d1d]";
 
+  /* 🔁 HANDLE CHANGE */
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
 
     if (type === "file") {
       const file = files[0];
       if (!file) return;
-      setProduct({ ...product, imageFile: file });
+      setProduct((prev) => ({ ...prev, imageFile: file }));
       setPreviewImage(URL.createObjectURL(file));
       return;
     }
 
-    // ❌ prevent negative numbers
     if (
       ["price", "discountPercentage", "weight", "quantity"].includes(name) &&
       Number(value) < 0
@@ -68,14 +73,10 @@ export default function AddProductForm({ onCancel, setToast }) {
       return;
     }
 
-    setProduct({ ...product, [name]: value });
+    setProduct((prev) => ({ ...prev, [name]: value }));
   };
 
-  const removeImage = () => {
-    setProduct({ ...product, imageFile: null });
-    setPreviewImage(null);
-  };
-
+  /* ✅ SUBMIT */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -101,10 +102,8 @@ export default function AddProductForm({ onCancel, setToast }) {
       const imageUrls = await ImageUploader([product.imageFile]);
       if (!imageUrls.length) throw new Error("Image upload failed");
 
-      const email = sessionStorage.getItem("email");
-
       const payload = {
-        email,
+        email: sessionStorage.getItem("email"),
         category: product.category,
         price: Number(product.price),
         discountPercentage: Number(product.discountPercentage || 0),
@@ -118,138 +117,201 @@ export default function AddProductForm({ onCancel, setToast }) {
         imageUrl: imageUrls[0],
       };
 
-      const res = await API.post("/api/v1/products/addProduct", payload);
+      await API.post("/api/v1/products/addProduct", payload);
 
       onCancel();
       setToast({
         name: "Product",
-        message: "Product added successfully",
+        message: "added successfully",
       });
     } catch (err) {
+      console.error("❌ Failed to add product", err);
       alert("❌ Failed to add product");
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div ref={formRef} className="max-h-[80vh] overflow-y-auto px-2">
-      {error && (
-        <div className="mb-4 bg-[#7c1d1d] text-white p-3 rounded-md">
-          ⚠️ Please fill all required fields correctly
-        </div>
-      )}
-
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-xl shadow max-w-2xl mx-auto"
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto pt-10">
+      <div
+        ref={modalRef}
+        className="bg-white w-full max-w-2xl rounded-xl p-6 shadow-lg"
       >
         <h2 className="text-2xl font-bold text-[#7c1d1d] mb-6 text-center">
           Add New Product
         </h2>
 
-        {/* CATEGORY */}
-        <select
-          name="category"
-          value={product.category}
-          onChange={handleChange}
-          className={inputStyle}
-        >
-          <option value="">Select Category *</option>
-          {categories.map((cat) => (
-            <option key={cat.categoryId} value={cat.name}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-
-        {/* PRICE & DISCOUNT */}
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <input
-            type="number"
-            name="price"
-            min="0"
-            placeholder="Price *"
-            value={product.price}
-            onChange={handleChange}
-            className={inputStyle}
-          />
-          <input
-            type="number"
-            name="discountPercentage"
-            min="0"
-            placeholder="Discount %"
-            value={product.discountPercentage}
-            onChange={handleChange}
-            className={inputStyle}
-          />
-        </div>
-
-        {/* WEIGHT & MATERIAL */}
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <input
-            type="number"
-            name="weight"
-            min="0"
-            placeholder="Weight (g) *"
-            value={product.weight}
-            onChange={handleChange}
-            className={inputStyle}
-          />
-          <select
-            name="materialType"
-            value={product.materialType}
-            onChange={handleChange}
-            className={inputStyle}
-          >
-            <option value="">Material *</option>
-            <option value="Gold">Gold</option>
-            <option value="Silver">Silver</option>
-          </select>
-        </div>
-
-        {/* QUANTITY */}
-        <input
-          type="number"
-          name="quantity"
-          min="0"
-          placeholder="Quantity *"
-          value={product.quantity}
-          onChange={handleChange}
-          className={`${inputStyle} mt-4`}
-        />
-
-        {/* IMAGE */}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleChange}
-          className="mt-4"
-        />
-
-        {previewImage && (
-          <img src={previewImage} alt="preview" className="mt-2 h-24 rounded" />
+        {error && (
+          <div className="mb-4 bg-red-600 text-white p-2 rounded">
+            ⚠️ Please fill all required fields
+          </div>
         )}
 
-        <div className="flex justify-end gap-4 mt-6">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 border rounded"
-          >
-            Cancel
-          </button>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* CATEGORY */}
+          <div>
+            <FieldLabel text="Category" required />
+            <select
+              name="category"
+              value={product.category}
+              onChange={handleChange}
+              className={inputStyle}
+            >
+              <option value="">Select Category</option>
+              {categories.map((c) => (
+                <option key={c.categoryId} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 bg-[#7c1d1d] text-white rounded"
-          >
-            {loading ? "Adding..." : "Add Product"}
-          </button>
-        </div>
-      </form>
+          {/* PRICE & DISCOUNT */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <FieldLabel text="Price" required />
+              <input
+                type="number"
+                name="price"
+                value={product.price}
+                onChange={handleChange}
+                className={inputStyle}
+              />
+            </div>
+
+            <div>
+              <FieldLabel text="Discount Percentage" />
+              <input
+                type="number"
+                name="discountPercentage"
+                value={product.discountPercentage}
+                onChange={handleChange}
+                className={inputStyle}
+              />
+            </div>
+          </div>
+
+          {/* WEIGHT & MATERIAL */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <FieldLabel text="Weight (g)" required />
+              <input
+                type="number"
+                name="weight"
+                value={product.weight}
+                onChange={handleChange}
+                className={inputStyle}
+              />
+            </div>
+
+            <div>
+              <FieldLabel text="Material Type" required />
+              <select
+                name="materialType"
+                value={product.materialType}
+                onChange={handleChange}
+                className={inputStyle}
+              >
+                <option value="">Select Material</option>
+                <option value="Gold">Gold</option>
+                <option value="Silver">Silver</option>
+              </select>
+            </div>
+          </div>
+
+          {/* QUANTITY */}
+          <div>
+            <FieldLabel text="Quantity" required />
+            <input
+              type="number"
+              name="quantity"
+              value={product.quantity}
+              onChange={handleChange}
+              className={inputStyle}
+            />
+          </div>
+
+          {/* GENDER & STATUS */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <FieldLabel text="Gender" required />
+              <select
+                name="gender"
+                value={product.gender}
+                onChange={handleChange}
+                className={inputStyle}
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Child">Child</option>
+              </select>
+            </div>
+
+            <div>
+              <FieldLabel text="Status" />
+              <select
+                name="isAvailable"
+                value={product.isAvailable}
+                onChange={handleChange}
+                className={inputStyle}
+              >
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          {/* DESCRIPTIONS */}
+          <div>
+            <FieldLabel text="Short Description" required />
+            <textarea
+              name="shortDescription"
+              value={product.shortDescription}
+              onChange={handleChange}
+              className={inputStyle}
+            />
+          </div>
+
+          <div>
+            <FieldLabel text="Full Description" />
+            <textarea
+              name="fullDescription"
+              value={product.fullDescription}
+              onChange={handleChange}
+              className={inputStyle}
+            />
+          </div>
+
+          {/* IMAGE */}
+          <div>
+            <FieldLabel text="Product Image" required />
+            <input type="file" accept="image/*" onChange={handleChange} />
+            {previewImage && (
+              <img
+                src={previewImage}
+                alt="preview"
+                className="h-24 rounded mt-2"
+              />
+            )}
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onCancel}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-[#7c1d1d] text-white px-4 py-2 rounded"
+            >
+              {loading ? "Adding..." : "Add Product"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
