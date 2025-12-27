@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 import earringsImg from "@/assets/earring.jpg";
 import ringsImg from "@/assets/ring.jpg";
 import payal from "@/assets/payal.jpg";
@@ -18,6 +20,16 @@ const categories = [
 ];
 
 export default function CategoryGrid() {
+  const navigate = useNavigate();
+
+  const handleClick = (cat) => {
+    if (cat.label === "VIEW ALL") {
+      navigate("/jewellery/list");
+    } else {
+      navigate(`/jewellery/list?category=${cat.label}`);
+    }
+  };
+
   return (
     <section className="max-w-6xl mx-auto px-4 py-12">
       <h2 className="text-2xl font-semibold text-center text-[#7c1d1d]">
@@ -31,7 +43,8 @@ export default function CategoryGrid() {
         {categories.map((cat, idx) => (
           <div
             key={idx}
-            className="flex flex-col items-center text-center border rounded-lg overflow-hidden shadow hover:shadow-md transition"
+            onClick={() => handleClick(cat)}
+            className="cursor-pointer flex flex-col items-center text-center border rounded-lg overflow-hidden shadow hover:shadow-md transition"
           >
             {cat.image ? (
               <img
