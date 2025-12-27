@@ -12,6 +12,7 @@ import RepairOldProductRequestUser from "../pages/user/RepairOldProductRequestUs
 import GoldLoanInquiryUser from "../pages/user/GoldLoanInquiryUser";
 import Contact from "../components/common/Contact";
 import StoreLocation from "../components/common/StoreLocation";
+import AllCategories from "../pages/user/AllCategories";
 
 // Admin
 import AdminLogin from "../auth/AdminLogin";
@@ -37,6 +38,7 @@ const PublicRoutes = () => {
       <Route path="/repairProduct" element={<RepairOldProductRequestUser />} />
       <Route path="/goldLoanInquiry" element={<GoldLoanInquiryUser />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/categories" element={<AllCategories />} />
 
       {/* Admin */}
       <Route path="/adminLogin" element={<AdminLogin />} />
