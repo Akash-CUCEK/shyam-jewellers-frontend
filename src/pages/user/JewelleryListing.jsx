@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { API } from "@/utils/API";
+import Filters from "./Filters";
+import SortBar from "./SortBar";
+import ProductGrid from "./ProductGrid";
 
 export default function JewelleryListing() {
   const [searchParams] = useSearchParams();
-
   const category = searchParams.get("category");
 
   const [products, setProducts] = useState([]);
@@ -13,23 +15,54 @@ export default function JewelleryListing() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  /* ================= FETCH PRODUCTS ================= */
-  const fetchProducts = async (pageNo = 0) => {
+  const [filters, setFilters] = useState({
+    minPrice: null,
+    maxPrice: null,
+    minWeight: null,
+    maxWeight: null,
+    discountPercentage: null,
+    gender: null,
+    sortBy: null,
+    sortOrder: null,
+  });
+
+  /* ================= APPLY FILTERS ================= */
+  const applyFilters = async (pageNo = 0) => {
     setLoading(true);
     try {
-      let url = `/api/v1/public/getAllProducts?page=${pageNo}&size=${size}`;
-
-      if (category) {
-        url = `/api/v1/public/category/${category}?page=${pageNo}&size=${size}`;
-      }
-
-      const res = await API.get(url);
+      const res = await API.post(
+        `/api/v1/public/getProductsByFilter?page=${pageNo}&size=${size}`,
+        {
+          ...filters,
+          category,
+        }
+      );
 
       setProducts(res.data.response.content || []);
       setTotalPages(res.data.response.totalPages || 0);
       setPage(pageNo);
     } catch (err) {
-      console.error("Error loading products", err);
+      console.error(err);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ================= INITIAL LOAD ================= */
+  const fetchInitial = async () => {
+    setLoading(true);
+    try {
+      let url = `/api/v1/public/getAllProducts?page=0&size=${size}`;
+      if (category) {
+        url = `/api/v1/public/category/${category}?page=0&size=${size}`;
+      }
+
+      const res = await API.get(url);
+      setProducts(res.data.response.content || []);
+      setTotalPages(res.data.response.totalPages || 0);
+    } catch (err) {
+      console.error(err);
       setProducts([]);
     } finally {
       setLoading(false);
@@ -37,88 +70,57 @@ export default function JewelleryListing() {
   };
 
   useEffect(() => {
-    fetchProducts(0);
+    fetchInitial();
   }, [category]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      <h2 className="text-xl font-semibold text-[#7c1d1d] mb-4">
-        {category ? category.replace("_", " ") : "All Jewellery"}
-      </h2>
+      <p className="text-xs text-gray-500 mb-1">
+        Home / Jewellery /{" "}
+        <span className="font-medium">{category || "All"}</span>
+      </p>
 
-      {loading && (
-        <div className="text-center py-10 text-gray-500">
-          Loading products...
+      <h1 className="text-lg font-semibold mb-4">
+        {category || "All Jewellery"} ({products.length})
+      </h1>
+
+      <div className="flex gap-6">
+        <div className="hidden md:block w-64 shrink-0">
+          <Filters
+            filters={filters}
+            setFilters={setFilters}
+            applyFilters={applyFilters}
+          />
         </div>
-      )}
 
-      {!loading && products.length === 0 && (
-        <div className="text-center py-10 text-gray-500">No products found</div>
-      )}
+        <div className="flex-1">
+          <SortBar setFilters={setFilters} />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
-        {products.map((p) => (
-          <div
-            key={p.id}
-            className="border rounded-lg shadow-sm hover:shadow-md transition bg-white"
-          >
-            <img
-              src={p.imageUrl}
-              alt={p.name}
-              className="w-full h-44 object-contain p-3"
-            />
-
-            <div className="p-3">
-              <p className="text-sm font-medium line-clamp-2">{p.name}</p>
-
-              <div className="mt-1">
-                <span className="font-semibold text-[#7c1d1d]">
-                  ₹{p.finalPrice}
-                </span>
-                {p.discountPercentage && (
-                  <span className="text-xs text-green-600 ml-2">
-                    {p.discountPercentage}% OFF
-                  </span>
-                )}
-              </div>
-
-              <p className="text-xs text-gray-500 mt-1">Weight: {p.weight} g</p>
+          {loading && (
+            <div className="py-10 text-center text-gray-500">
+              Loading products...
             </div>
-          </div>
-        ))}
-      </div>
+          )}
 
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-8">
-          <button
-            disabled={page === 0}
-            onClick={() => fetchProducts(page - 1)}
-            className="px-3 py-1 border rounded disabled:opacity-40"
-          >
-            Prev
-          </button>
+          {!loading && <ProductGrid products={products} />}
 
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i}
-              onClick={() => fetchProducts(i)}
-              className={`px-3 py-1 border rounded ${
-                page === i ? "bg-[#7c1d1d] text-white" : ""
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-
-          <button
-            disabled={page === totalPages - 1}
-            onClick={() => fetchProducts(page + 1)}
-            className="px-3 py-1 border rounded disabled:opacity-40"
-          >
-            Next
-          </button>
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-8">
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => applyFilters(i)}
+                  className={`px-3 py-1 border rounded ${
+                    page === i ? "bg-[#7c1d1d] text-white" : ""
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

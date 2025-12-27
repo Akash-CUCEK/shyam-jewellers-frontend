@@ -1,44 +1,78 @@
 import { BiChat, BiPhoneCall } from "react-icons/bi";
 import { MdOutlineEmail } from "react-icons/md";
 
-function Contact() {
+export default function Contact() {
   return (
-    <div className="py-12 px-6 md:px-20 bg-white text-center">
+    <div className="py-6 px-4 md:px-20 bg-white text-center">
       {/* Title */}
-      <h1 className="text-3xl md:text-4xl font-semibold text-[#7c1d1d] mb-6">
+      <h1 className="text-xl md:text-3xl font-semibold text-[#7c1d1d] mb-2">
         Help & Contact
       </h1>
 
       {/* Subtitle */}
-      <h2 className="text-xl font-medium text-black mb-10">Have A Question</h2>
+      <h2 className="text-sm md:text-lg font-medium text-black mb-6">
+        Have a Question?
+      </h2>
 
       {/* Contact Options */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto text-[#7c1d1d]">
-        {/* Chat */}
-        <div className="flex flex-col items-center">
-          <BiChat className="text-4xl mb-3" />
-          <p className="text-lg font-medium">Chat with Us</p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto text-[#7c1d1d]">
+        {/* CHAT - WHATSAPP */}
+        <a
+          href="https://wa.me/916206740308"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="
+            flex flex-col items-center
+            border rounded-xl
+            py-4
+            transition
+            hover:shadow-md
+            hover:bg-[#f8f3f3]
+          "
+        >
+          <BiChat className="text-3xl mb-2" />
+          <p className="text-sm font-medium">Chat with Us</p>
+        </a>
 
-        {/* Call */}
-        <div className="flex flex-col items-center border-l border-r border-gray-300">
-          <BiPhoneCall className="text-4xl mb-3" />
-          <p className="text-lg font-medium">Call Us At</p>
-          <p className="text-sm mt-1">6206740308</p>
-        </div>
+        {/* CALL */}
+        <a
+          href="tel:+916206740308"
+          className="
+            flex flex-col items-center
+            border rounded-xl
+            py-4
+            transition
+            hover:shadow-md
+            hover:bg-[#f8f3f3]
+          "
+        >
+          <BiPhoneCall className="text-3xl mb-2" />
+          <p className="text-sm font-medium">Call Us</p>
+          <p className="text-xs mt-1">6206740308</p>
+        </a>
 
-        {/* Email */}
-        <div className="flex flex-col items-center">
-          <MdOutlineEmail className="text-4xl mb-3" />
-          <p className="text-lg font-medium">Write to Us</p>
-        </div>
+        {/* EMAIL */}
+        <a
+          href="mailto:akashkumarcucek@gmail.com"
+          className="
+            flex flex-col items-center
+            border rounded-xl
+            py-4
+            transition
+            hover:shadow-md
+            hover:bg-[#f8f3f3]
+          "
+        >
+          <MdOutlineEmail className="text-3xl mb-2" />
+          <p className="text-sm font-medium">Write to Us</p>
+          <p className="text-xs mt-1 break-all">akashkumarcucek@gmail.com</p>
+        </a>
       </div>
 
       {/* Notice */}
-      <p className="text-sm text-gray-600 mt-10 max-w-xl mx-auto">
-        Calling service is available between 9 AM to 6 PM.
+      <p className="text-xs text-gray-600 mt-6 max-w-xl mx-auto">
+        Calling service is available between <b>9 AM to 6 PM</b>.
       </p>
     </div>
   );
 }
-export default Contact;

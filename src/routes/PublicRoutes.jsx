@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 // User Pages
 import Home from "../pages/user/Home";
 import JewelleryListing from "../pages/user/JewelleryListing";
+import ProductDetail from "../pages/user/ProductDetail"; // ✅ ADD THIS
 import BookAppointment from "../pages/user/BookAppointment";
 import GiftCard from "../pages/user/GiftCard";
 import Reviews from "../components/users/Reviews";
@@ -21,9 +22,13 @@ const PublicRoutes = () => {
     <Routes>
       <Route path="/" element={<Home />} />
 
-      {/* 🔥 Jewellery Listing */}
+      {/* 🔥 Jewellery */}
       <Route path="/jewellery/list" element={<JewelleryListing />} />
 
+      {/* ✅ PRODUCT DETAIL PAGE */}
+      <Route path="/jewellery/product/:id" element={<ProductDetail />} />
+
+      {/* Other Pages */}
       <Route path="/location" element={<StoreLocation />} />
       <Route path="/reviews" element={<Reviews />} />
       <Route path="/bookAppointment" element={<BookAppointment />} />
