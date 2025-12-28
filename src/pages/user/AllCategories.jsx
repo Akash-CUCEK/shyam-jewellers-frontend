@@ -13,10 +13,14 @@ export default function AllCategories() {
   const fetchAllCategories = async () => {
     try {
       const res = await API.post("/api/v1/public/getAllCategory");
-      const all = res?.data?.response?.categories || [];
 
-      all.sort((a, b) => a.name.localeCompare(b.name));
-      setCategories(all);
+      // ✅ CORRECT RESPONSE PATH
+      const all = res?.data?.response?.getCategoryUserResponseDTOS || [];
+
+      // ✅ SORT BY NAME
+      const sorted = [...all].sort((a, b) => a.name.localeCompare(b.name));
+
+      setCategories(sorted);
     } catch (err) {
       console.error("Failed to fetch all categories", err);
       setCategories([]);
@@ -32,7 +36,7 @@ export default function AllCategories() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {categories.map((cat) => (
           <div
-            key={cat.id}
+            key={cat.categoryId} // ✅ FIXED
             onClick={() => navigate(`/jewellery/list?category=${cat.name}`)}
             className="
               cursor-pointer

@@ -1,19 +1,37 @@
+import { useNavigate } from "react-router-dom";
 import shadi from "../../assets/shadi.jpg";
 import silver from "../../assets/silver.jpg";
 import gold from "../../assets/gold.jpg";
 import daily from "../../assets/daily.jpg";
 
 const categories = [
-  { label: "Wedding", image: shadi },
-  { label: "Silver", image: silver },
-  { label: "Gold", image: gold },
-  { label: "Daily Wear", image: daily },
+  {
+    label: "Wedding",
+    image: shadi,
+    query: "?minPrice=20000",
+  },
+  {
+    label: "Silver",
+    image: silver,
+    query: "?material=SILVER",
+  },
+  {
+    label: "Gold",
+    image: gold,
+    query: "?material=GOLD",
+  },
+  {
+    label: "Daily Wear",
+    image: daily,
+    query: "?maxPrice=2000",
+  },
 ];
 
 export default function JewelleryOccasions() {
+  const navigate = useNavigate();
+
   return (
     <section className="max-w-6xl mx-auto px-4 py-6">
-      {/* Heading */}
       <h2 className="text-lg md:text-2xl font-semibold text-center text-[#7c1d1d]">
         Shyama Jewellers World
       </h2>
@@ -21,41 +39,30 @@ export default function JewelleryOccasions() {
         A companion for every occasion
       </p>
 
-      {/* GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {categories.map((cat, index) => (
           <div
             key={index}
+            onClick={() => navigate(`/jewellery/list${cat.query}`)}
             className="
-              relative
-              rounded-xl
-              overflow-hidden
-              bg-white
-              border
-              transition
-              hover:shadow-md
-              group
+              relative rounded-xl overflow-hidden bg-white border
+              transition hover:shadow-md cursor-pointer group
             "
           >
-            {/* IMAGE */}
             <img
               src={cat.image}
               alt={cat.label}
               className="
-                w-full
-                h-[180px] sm:h-[220px] md:h-[240px]
-                object-cover
-                transition-transform duration-500
+                w-full h-[180px] sm:h-[220px] md:h-[240px]
+                object-cover transition-transform duration-500
                 group-hover:scale-105
               "
             />
 
-            {/* GRADIENT OVERLAY */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"></div>
 
-            {/* LABEL */}
             <div className="absolute bottom-0 left-0 w-full p-3">
-              <h3 className="text-white text-sm md:text-lg font-semibold tracking-wide">
+              <h3 className="text-white text-sm md:text-lg font-semibold">
                 {cat.label}
               </h3>
             </div>

@@ -1,115 +1,91 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useSearchParams } from "react-router-dom";
-import { API } from "@/utils/API";
 import Filters from "./Filters";
 import SortBar from "./SortBar";
 import ProductGrid from "./ProductGrid";
+import { useJewelleryListing } from "@/hooks/useJewelleryListing";
 
 export default function JewelleryListing() {
   const [searchParams] = useSearchParams();
+
   const category = searchParams.get("category");
+  const gender = searchParams.get("gender");
+  const material = searchParams.get("material");
+  const minPrice = searchParams.get("minPrice");
+  const maxPrice = searchParams.get("maxPrice");
 
-  const [products, setProducts] = useState([]);
-  const [page, setPage] = useState(0);
   const size = 12;
-  const [totalPages, setTotalPages] = useState(0);
-  const [loading, setLoading] = useState(false);
 
-  const [filters, setFilters] = useState({
-    minPrice: null,
-    maxPrice: null,
-    minWeight: null,
-    maxWeight: null,
-    discountPercentage: null,
-    gender: null,
-    sortBy: null,
-    sortOrder: null,
-  });
+  const { products, page, totalPages, loading, errorMessage, fetchProducts } =
+    useJewelleryListing({
+      category,
+      gender,
+      material,
+      minPrice,
+      maxPrice,
+      size,
+    });
 
-  /* ================= APPLY FILTERS ================= */
-  const applyFilters = async (pageNo = 0) => {
-    setLoading(true);
-    try {
-      const res = await API.post(
-        `/api/v1/public/getProductsByFilter?page=${pageNo}&size=${size}`,
-        {
-          ...filters,
-          category,
-        }
-      );
-
-      setProducts(res.data.response.content || []);
-      setTotalPages(res.data.response.totalPages || 0);
-      setPage(pageNo);
-    } catch (err) {
-      console.error(err);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ================= INITIAL LOAD ================= */
-  const fetchInitial = async () => {
-    setLoading(true);
-    try {
-      let url = `/api/v1/public/getAllProducts?page=0&size=${size}`;
-      if (category) {
-        url = `/api/v1/public/category/${category}?page=0&size=${size}`;
-      }
-
-      const res = await API.get(url);
-      setProducts(res.data.response.content || []);
-      setTotalPages(res.data.response.totalPages || 0);
-    } catch (err) {
-      console.error(err);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchInitial();
-  }, [category]);
+  // 🔹 Dynamic title for UX
+  const pageTitle = material
+    ? `${material} Jewellery`
+    : minPrice
+    ? "Wedding Jewellery"
+    : maxPrice
+    ? "Daily Wear Jewellery"
+    : gender
+    ? `${gender} Jewellery`
+    : category || "All Jewellery";
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <p className="text-xs text-gray-500 mb-1">
-        Home / Jewellery /{" "}
-        <span className="font-medium">{category || "All"}</span>
+        Home / Jewellery / <span className="font-medium">{pageTitle}</span>
       </p>
 
       <h1 className="text-lg font-semibold mb-4">
-        {category || "All Jewellery"} ({products.length})
+        {pageTitle} ({products.length})
       </h1>
 
       <div className="flex gap-6">
+        {/* FILTERS */}
         <div className="hidden md:block w-64 shrink-0">
-          <Filters
-            filters={filters}
-            setFilters={setFilters}
-            applyFilters={applyFilters}
-          />
+          <Filters applyFilters={fetchProducts} />
         </div>
 
+        {/* PRODUCTS */}
         <div className="flex-1">
-          <SortBar setFilters={setFilters} />
+          <SortBar />
 
+          {/* LOADING */}
           {loading && (
             <div className="py-10 text-center text-gray-500">
               Loading products...
             </div>
           )}
 
-          {!loading && <ProductGrid products={products} />}
+          {/* EMPTY / ERROR */}
+          {!loading && errorMessage && (
+            <div className="py-12 text-center">
+              <p className="text-lg font-medium text-gray-600">
+                {errorMessage}
+              </p>
+              <p className="text-sm text-gray-400 mt-1">
+                Please try another option
+              </p>
+            </div>
+          )}
 
+          {/* GRID */}
+          {!loading && !errorMessage && <ProductGrid products={products} />}
+
+          {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-8">
               {[...Array(totalPages)].map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => applyFilters(i)}
+                  onClick={() => fetchProducts(i)}
                   className={`px-3 py-1 border rounded ${
                     page === i ? "bg-[#7c1d1d] text-white" : ""
                   }`}

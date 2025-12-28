@@ -13,8 +13,12 @@ export default function CategoryGrid() {
   const fetchCategories = async () => {
     try {
       const res = await API.post("/api/v1/public/getAllCategory");
-      const allCategories = res?.data?.response?.categories || [];
 
+      // ✅ CORRECT PATH
+      const allCategories =
+        res?.data?.response?.getCategoryUserResponseDTOS || [];
+
+      // ✅ FILTER showOnHome
       const homeCategories = allCategories.filter(
         (cat) => cat.showOnHome === true
       );
@@ -25,6 +29,7 @@ export default function CategoryGrid() {
       setCategories([]);
     }
   };
+
   const handleClick = (cat) => {
     navigate(`/jewellery/list?category=${cat.name}`);
   };
@@ -41,7 +46,7 @@ export default function CategoryGrid() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {categories.map((cat) => (
           <div
-            key={cat.id}
+            key={cat.categoryId} // ✅ FIXED
             onClick={() => handleClick(cat)}
             className="
               cursor-pointer
@@ -65,7 +70,7 @@ export default function CategoryGrid() {
           </div>
         ))}
 
-        {/* 🔥 VIEW ALL FIXED BOX */}
+        {/* 🔥 VIEW ALL */}
         <div
           onClick={() => navigate("/categories")}
           className="
