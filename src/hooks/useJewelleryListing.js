@@ -1,13 +1,26 @@
 import { useState, useEffect } from "react";
 import { API } from "@/utils/API";
 
+const normalizeProduct = (p) => ({
+  productId: p.id,
+  name: p.name,
+  price: p.price,
+  finalPrice: p.finalPrice,
+  discountPercentage: p.discountPercentage,
+  weight: p.weight,
+  imageUrl: p.imageUrl,
+  gender: p.gender,
+  isAvailable: p.isAvailable,
+  availableStock: p.availableStock,
+});
+
 export function useJewelleryListing({
   category,
   gender,
   material,
   minPrice,
   maxPrice,
-  size,
+  size = 12,
 }) {
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(0);
@@ -26,36 +39,25 @@ export function useJewelleryListing({
           `/api/v1/public/materialType/${material}?page=${pageNo}&size=${size}`
         );
 
-        setProducts(res.data.response?.content || []);
+        const raw = res.data.response?.content || [];
+        setProducts(raw.map(normalizeProduct));
         setTotalPages(res.data.response?.totalPages || 0);
         setPage(pageNo);
         return;
       }
 
-      /* ================= PRICE FILTER ================= */
+      /* ================= PRICE ================= */
       if (minPrice || maxPrice) {
-        let url = "";
-
-        // ✅ WEDDING / PREMIUM (price >= minPrice)
-        if (minPrice) {
-          url = `/api/v1/public/price/above?price=${minPrice}&page=${pageNo}&size=${size}`;
-        }
-
-        // ✅ DAILY WEAR / BUDGET (price <= maxPrice)
-        if (maxPrice) {
-          url = `/api/v1/public/price/under?price=${maxPrice}&page=${pageNo}&size=${size}`;
-        }
+        const url = minPrice
+          ? `/api/v1/public/price/above?price=${minPrice}&page=${pageNo}&size=${size}`
+          : `/api/v1/public/price/under?price=${maxPrice}&page=${pageNo}&size=${size}`;
 
         const res = await API.get(url);
 
-        setProducts(res.data.response?.content || []);
+        const raw = res.data.response?.content || [];
+        setProducts(raw.map(normalizeProduct));
         setTotalPages(res.data.response?.totalPages || 0);
         setPage(pageNo);
-
-        if ((res.data.response?.content || []).length === 0) {
-          setErrorMessage("No products found");
-        }
-
         return;
       }
 
@@ -65,15 +67,10 @@ export function useJewelleryListing({
           gender,
         });
 
-        const products = res.data.response?.products || [];
-
-        setProducts(products);
+        const raw = res.data.response?.products || [];
+        setProducts(raw.map(normalizeProduct));
         setTotalPages(1);
         setPage(0);
-
-        if (products.length === 0) {
-          setErrorMessage(`No products found for ${gender} jewellery`);
-        }
         return;
       }
 
@@ -85,17 +82,14 @@ export function useJewelleryListing({
 
       const res = await API.get(url);
 
-      setProducts(res.data.response?.content || []);
+      const raw = res.data.response?.content || [];
+      setProducts(raw.map(normalizeProduct));
       setTotalPages(res.data.response?.totalPages || 0);
       setPage(pageNo);
     } catch (err) {
-      const msg =
-        err?.response?.data?.errors?.messages?.[0]?.message ||
-        "No products found";
-
       setProducts([]);
       setTotalPages(0);
-      setErrorMessage(msg);
+      setErrorMessage("No products found");
     } finally {
       setLoading(false);
     }

@@ -1,199 +1,226 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API } from "@/utils/API";
 
-/* ✅ SAME IMAGES AS CategoryGrid */
-import earringsImg from "@/assets/earring.jpg";
-import ringsImg from "@/assets/ring.jpg";
-import mangalsutraImg from "@/assets/mangalsutra.jpg";
-import chainsImg from "@/assets/chain.jpg";
-
-/* FILTER LIST */
+/* ======================================================
+   FILTER LIST
+====================================================== */
 const filters = ["Category", "Price", "Occasion", "Gender"];
 
-/* CATEGORY – SPECIAL ONE ROW DATA */
-const categoryRow = [
-  {
-    label: "EARRINGS",
-    image: earringsImg,
-    path: "/jewellery/list?category=EARRINGS",
-  },
-  {
-    label: "FINGER RINGS",
-    image: ringsImg,
-    path: "/jewellery/list?category=FINGER RINGS",
-  },
-  {
-    label: "MANGALSUTRA",
-    image: mangalsutraImg,
-    path: "/jewellery/list?category=MANGALSUTRA",
-  },
-  {
-    label: "CHAINS",
-    image: chainsImg,
-    path: "/jewellery/list?category=CHAINS",
-  },
-  {
-    label: "VIEW ALL",
-    image: null,
-    text: "10+ Categories",
-    path: "/jewellery/list",
-  },
-];
-
-/* OTHER FILTER DATA – AS IT IS */
-const data = {
-  Price: [
-    { label: "<25K", image: "/images/price1.png", path: "/price/under-25k" },
-    { label: "25K-50K", image: "/images/price2.png", path: "/price/25k-50k" },
-    { label: "50K-1L", image: "/images/price3.png", path: "/price/50k-1l" },
-    {
-      label: "1L & Above",
-      image: "/images/price4.png",
-      path: "/price/1l-above",
-    },
-  ],
-  Occasion: [
-    {
-      label: "Office Wear",
-      image: "/images/office.png",
-      path: "/occasion/office",
-    },
-    {
-      label: "Modern Wear",
-      image: "/images/modern.png",
-      path: "/occasion/modern",
-    },
-    {
-      label: "Casual Wear",
-      image: "/images/casual.png",
-      path: "/occasion/casual",
-    },
-    {
-      label: "Traditional Wear",
-      image: "/images/traditional.png",
-      path: "/occasion/traditional",
-    },
-  ],
-  Gender: [
-    { label: "Women", image: "/images/women.png", path: "/gender/women" },
-    { label: "Men", image: "/images/men.png", path: "/gender/men" },
-    { label: "Kids & Teens", image: "/images/kids.png", path: "/gender/kids" },
-  ],
-};
-
 export default function AllJewellery() {
-  const [activeFilter, setActiveFilter] = useState("Category");
   const navigate = useNavigate();
 
-  const handleNavigate = (path) => {
-    navigate(path);
+  /* ======================================================
+     STATE
+  ====================================================== */
+  const [activeFilter, setActiveFilter] = useState("Category");
+  const [homeCategories, setHomeCategories] = useState([]);
+
+  /* ======================================================
+     FETCH HOME CATEGORIES (showOnHome = true)
+  ====================================================== */
+  useEffect(() => {
+    if (activeFilter === "Category") {
+      fetchHomeCategories();
+    }
+  }, [activeFilter]);
+
+  const fetchHomeCategories = async () => {
+    try {
+      const res = await API.post("/api/v1/public/getAllCategory");
+      const all = res?.data?.response?.getCategoryUserResponseDTOS || [];
+
+      const showOnHome = all.filter((c) => c.showOnHome);
+      setHomeCategories(showOnHome.slice(0, 4));
+    } catch {
+      setHomeCategories([]);
+    }
   };
 
-  return (
-    <div className="w-full bg-white shadow-xl border-t border-gray-200">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row">
-          {/* LEFT FILTER */}
-          <div className="w-full lg:w-48 border-b lg:border-b-0 lg:border-r border-gray-200">
-            {/* MOBILE */}
-            <div className="lg:hidden px-3 py-3">
-              <div className="grid grid-cols-2 gap-2">
-                {filters.map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setActiveFilter(filter)}
-                    className={`px-2 py-2 rounded-full text-xs font-medium
-                      ${
-                        activeFilter === filter
-                          ? "bg-rose-600 text-white"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
-            </div>
+  /* ======================================================
+     REUSABLE CARD STYLE
+  ====================================================== */
+  const Card = ({ title, onClick, children }) => (
+    <div
+      onClick={onClick}
+      className="
+        cursor-pointer bg-white border rounded-xl
+        hover:shadow-lg transition
+        flex flex-col items-center justify-center
+        h-[140px] text-center
+      "
+    >
+      {children}
+      <div className="mt-2 text-xs font-semibold text-gray-800">{title}</div>
+    </div>
+  );
 
-            {/* DESKTOP */}
-            <div className="hidden lg:flex flex-col p-4 space-y-2">
-              <h2 className="text-base font-semibold text-gray-800 mb-2">
-                Filter By
-              </h2>
-              {filters.map((filter) => (
+  /* ======================================================
+     JSX
+  ====================================================== */
+  return (
+    <div className="w-full bg-white border-t border-gray-200">
+      <div className="max-w-7xl mx-auto">
+        {/* ================= MOBILE FILTER (TOP PILLS) ================= */}
+        <div className="lg:hidden px-3 py-3">
+          <div className="flex gap-2 overflow-x-auto">
+            {filters.map((f) => (
+              <button
+                key={f}
+                onClick={() => setActiveFilter(f)}
+                className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap
+                  ${
+                    activeFilter === f
+                      ? "bg-[#7c1d1d] text-white"
+                      : "bg-gray-100 text-gray-700"
+                  }
+                `}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex">
+          {/* ================= DESKTOP LEFT FILTER ================= */}
+          <div className="hidden lg:flex w-56 border-r border-gray-200">
+            <div className="p-4 space-y-2 w-full">
+              {filters.map((f) => (
                 <button
-                  key={filter}
-                  onMouseEnter={() => setActiveFilter(filter)}
-                  onClick={() => setActiveFilter(filter)}
-                  className={`text-left px-3 py-2 rounded-lg text-sm font-medium
+                  key={f}
+                  onClick={() => setActiveFilter(f)}
+                  className={`
+                    w-full px-4 py-3 rounded-lg text-left text-sm font-medium
+                    transition
                     ${
-                      activeFilter === filter
-                        ? "bg-rose-50 text-rose-700 border-l-4 border-rose-600"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
+                      activeFilter === f
+                        ? "bg-[#7c1d1d] text-white"
+                        : "text-gray-700 hover:bg-[#f8eaea] hover:text-[#7c1d1d]"
+                    }
+                  `}
                 >
-                  {filter}
+                  {f}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* CONTENT */}
+          {/* ================= RIGHT CONTENT ================= */}
           <div className="flex-1 p-4 lg:p-6">
-            {/* ✅ CATEGORY – ONE ROW */}
-            {activeFilter === "Category" ? (
+            {/* ================= CATEGORY ================= */}
+            {activeFilter === "Category" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                {categoryRow.map((cat, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => handleNavigate(cat.path)}
-                    className="cursor-pointer bg-white border rounded-xl text-center
-                               transition hover:shadow-md"
+                {homeCategories.map((cat) => (
+                  <Card
+                    key={cat.categoryId}
+                    title={cat.name}
+                    onClick={() =>
+                      navigate(`/jewellery/list?category=${cat.name}`)
+                    }
                   >
-                    {cat.image ? (
-                      <img
-                        src={cat.image}
-                        alt={cat.label}
-                        className="w-full h-[140px] object-contain p-3
-                                   transition-transform duration-300 hover:scale-105"
-                      />
-                    ) : (
-                      <div
-                        className="h-[140px] flex flex-col items-center
-                                      justify-center bg-[#f8f3f3]
-                                      text-[#7c1d1d] font-semibold text-sm"
-                      >
-                        {cat.text}
-                      </div>
-                    )}
-                    <div className="py-2 text-xs font-medium text-gray-800">
-                      {cat.label}
-                    </div>
-                  </div>
+                    <img
+                      src={cat.imageUrl}
+                      alt={cat.name}
+                      className="h-20 object-contain"
+                    />
+                  </Card>
                 ))}
+
+                {/* ALL CATEGORIES */}
+                <Card
+                  title="10+ Categories"
+                  onClick={() => navigate("/categories")}
+                >
+                  <span className="text-[#7c1d1d] font-bold text-sm">
+                    VIEW ALL
+                  </span>
+                </Card>
               </div>
-            ) : (
-              /* 🔹 OTHER FILTERS – SAME AS BEFORE */
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {data[activeFilter]?.map((item, index) => (
-                  <div
-                    key={index}
-                    onClick={() => handleNavigate(item.path)}
-                    className="cursor-pointer bg-white rounded-lg p-2
-                               shadow-sm hover:shadow-md transition"
-                  >
-                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2">
-                      <img
-                        src={item.image}
-                        alt={item.label}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <p className="text-xs font-medium text-center">
-                      {item.label}
-                    </p>
-                  </div>
-                ))}
+            )}
+
+            {/* ================= PRICE ================= */}
+            {activeFilter === "Price" && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <Card
+                  title="Under ₹20K"
+                  onClick={() => navigate("/jewellery/list?maxPrice=20000")}
+                >
+                  💍
+                </Card>
+
+                <Card
+                  title="Under ₹50K"
+                  onClick={() => navigate("/jewellery/list?maxPrice=50000")}
+                >
+                  ✨
+                </Card>
+
+                <Card
+                  title="₹50K & Above"
+                  onClick={() => navigate("/jewellery/list?minPrice=50000")}
+                >
+                  👑
+                </Card>
+              </div>
+            )}
+
+            {/* ================= OCCASION ================= */}
+            {activeFilter === "Occasion" && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <Card
+                  title="Daily Wear"
+                  onClick={() => navigate("/jewellery/list?maxPrice=20000")}
+                >
+                  🌼
+                </Card>
+
+                <Card
+                  title="Office Wear"
+                  onClick={() => navigate("/jewellery/list?maxPrice=50000")}
+                >
+                  👜
+                </Card>
+
+                <Card
+                  title="Casual Wear"
+                  onClick={() => navigate("/jewellery/list?maxPrice=30000")}
+                >
+                  🌸
+                </Card>
+
+                <Card
+                  title="Wedding"
+                  onClick={() => navigate("/jewellery/list?minPrice=50000")}
+                >
+                  💒
+                </Card>
+              </div>
+            )}
+
+            {/* ================= GENDER ================= */}
+            {activeFilter === "Gender" && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <Card
+                  title="Women"
+                  onClick={() => navigate("/jewellery/list?gender=female")}
+                >
+                  👩
+                </Card>
+
+                <Card
+                  title="Men"
+                  onClick={() => navigate("/jewellery/list?gender=Male")}
+                >
+                  👨
+                </Card>
+
+                <Card
+                  title="Kids & Teens"
+                  onClick={() => navigate("/jewellery/list?gender=Child")}
+                >
+                  🧒
+                </Card>
               </div>
             )}
           </div>

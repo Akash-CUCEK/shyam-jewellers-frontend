@@ -13,47 +13,43 @@ import { MdCategory } from "react-icons/md";
 import { HiOutlineMenuAlt2 } from "react-icons/hi";
 import { TbJewishStar } from "react-icons/tb";
 import { UserDropdown } from "../../pages/user/UserDropdown";
-import { Link } from "react-router-dom";
-import AllJewellry from "../../pages/user/AllJewellry";
+import { Link, useNavigate } from "react-router-dom";
+import AllJewellery from "../../pages/user/AllJewellry";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 
 export default function Navbar() {
   const { isLoggedIn } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showJewellery, setShowJewellery] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  /* 🔹 SCROLL ONLY FOR DESKTOP */
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.innerWidth >= 768) {
-        setScrolled(window.scrollY > 80);
-      } else {
-        setScrolled(false); // 👈 MOBILE RESET
-      }
+    const onScroll = () => {
+      setScrolled(window.innerWidth >= 768 && window.scrollY > 80);
     };
-
-    window.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", handleScroll);
-
+    window.addEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
     };
   }, []);
 
+  const go = (url) => {
+    setShowJewellery(false);
+    setMobileMenuOpen(false);
+    navigate(url);
+  };
+
   return (
-    <header className="bg-white shadow sticky top-0 z-50">
-      {/* 🔹 TOP HEADER */}
+    <header className="bg-white shadow sticky top-0 z-50 w-full">
+      {/* TOP BAR */}
       <div className="flex items-center justify-between px-4 md:px-10 py-2 border-b">
         <Link to="/" className="flex items-center gap-2">
-          <img
-            src="/logo.jpg"
-            alt="Shyam Jewellers"
-            className="w-9 h-9 md:w-10 md:h-10 object-contain"
-          />
+          <img src="/logo.jpg" className="w-9 h-9 object-contain" />
           <span className="text-lg md:text-2xl font-bold text-[#7c1d1d]">
             Shyam Jewellers
           </span>
@@ -63,15 +59,13 @@ export default function Navbar() {
         <div className="hidden md:flex items-center w-full max-w-2xl mx-6 border border-[#7c1d1d] rounded-full px-4 py-1.5">
           <FaSearch className="text-[#7c1d1d] mr-2" />
           <input
-            type="text"
-            placeholder="Search jewellery..."
             className="flex-grow outline-none text-sm"
+            placeholder="Search jewellery..."
           />
-          <FaCamera className="text-[#7c1d1d] mx-3 cursor-pointer" />
-          <FaMicrophone className="text-[#7c1d1d] cursor-pointer" />
+          <FaCamera className="mx-3 text-[#7c1d1d]" />
+          <FaMicrophone className="text-[#7c1d1d]" />
         </div>
 
-        {/* RIGHT ICONS */}
         <div className="flex items-center gap-4 text-[#7c1d1d] text-xl">
           <div className="hidden md:flex gap-5">
             <HoverIcon href="/reviews" icon={<PiCrown />} label="Reviews" />
@@ -80,7 +74,6 @@ export default function Navbar() {
               icon={<TbJewishStar />}
               label="Store Location"
             />
-
             {isLoggedIn && (
               <>
                 <HoverIcon
@@ -88,45 +81,29 @@ export default function Navbar() {
                   icon={<FaHeart />}
                   label="Wishlist"
                 />
-                <Link to="/cart" className="relative">
+                <Link to="/cart">
                   <FaShoppingBag />
-                  <span className="absolute -top-2 -right-2 bg-red-700 text-white text-xs rounded-full px-1">
-                    0
-                  </span>
                 </Link>
               </>
             )}
           </div>
-
           <UserDropdown />
-
           <button
-            className="md:hidden text-2xl"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen((p) => !p)}
           >
             <HiOutlineMenuAlt2 />
           </button>
         </div>
       </div>
 
-      {/* SEARCH MOBILE */}
-      <div className="md:hidden px-4 py-2 border-b">
-        <div className="flex items-center border border-[#7c1d1d] rounded-full px-3 py-1.5">
-          <FaSearch className="text-[#7c1d1d] mr-2" />
-          <input
-            type="text"
-            placeholder="Search jewellery..."
-            className="flex-grow outline-none text-sm"
-          />
-        </div>
-      </div>
-
-      {/* 🔹 NAVBAR */}
+      {/* NAVBAR */}
       <nav
         className={`${
           mobileMenuOpen ? "block" : "hidden"
-        } md:flex justify-between px-4 md:px-10 py-2 border-b`}
+        } md:flex w-full justify-between px-4 md:px-10 py-2 border-b`}
       >
+        {/* ALL JEWELLERY */}
         <div
           className="relative"
           onMouseEnter={() => setShowJewellery(true)}
@@ -136,56 +113,84 @@ export default function Navbar() {
             icon={<GiNecklaceDisplay />}
             label="All Jewellery"
             hideIcon={scrolled}
+            onClick={() => setShowJewellery((p) => !p)}
           />
 
           {showJewellery && (
-            <div className="absolute top-full z-50 w-screen -left-4 md:-left-10 bg-white shadow-lg border-t max-h-[70vh] overflow-y-auto">
-              <AllJewellry />
+            <div className="absolute top-full left-0 w-screen bg-white shadow-xl border-t">
+              <AllJewellery onNavigate={() => setShowJewellery(false)} />
             </div>
           )}
         </div>
 
-        <NavItem icon={<PiDiamondBold />} label="Gold" hideIcon={scrolled} />
-        <NavItem icon={<MdCategory />} label="Silver" hideIcon={scrolled} />
-        <NavItem icon={<GiLargeDress />} label="Earrings" hideIcon={scrolled} />
-        <NavItem icon={<FaRing />} label="Rings" hideIcon={scrolled} />
-        <NavItem icon={<MdCategory />} label="Daily Wear" hideIcon={scrolled} />
+        <NavItem
+          icon={<PiDiamondBold />}
+          label="Gold"
+          hideIcon={scrolled}
+          onClick={() => go("/jewellery/list?material=GOLD")}
+        />
         <NavItem
           icon={<MdCategory />}
-          label="Collections"
+          label="Silver"
           hideIcon={scrolled}
+          onClick={() => go("/jewellery/list?material=SILVER")}
         />
-        <NavItem icon={<MdCategory />} label="Wedding" hideIcon={scrolled} />
-        <NavItem icon={<FaGift />} label="Gifting" hideIcon={scrolled} />
         <NavItem
-          icon={<HiOutlineMenuAlt2 />}
-          label="More"
+          icon={<GiLargeDress />}
+          label="Earrings"
           hideIcon={scrolled}
+          onClick={() => go("/jewellery/list?category=EARRINGS")}
+        />
+        <NavItem
+          icon={<FaRing />}
+          label="Rings"
+          hideIcon={scrolled}
+          onClick={() => go("/jewellery/list?category=RINGS")}
+        />
+        <NavItem
+          icon={<MdCategory />}
+          label="Daily Wear"
+          hideIcon={scrolled}
+          onClick={() => go("/jewellery/list?maxPrice=20000")}
+        />
+        <NavItem
+          icon={<MdCategory />}
+          label="Wedding"
+          hideIcon={scrolled}
+          onClick={() => go("/jewellery/list?minPrice=50000")}
+        />
+        <NavItem
+          icon={<FaGift />}
+          label="Gifting"
+          hideIcon={scrolled}
+          onClick={() => go("/jewellery/list")}
         />
       </nav>
     </header>
   );
 }
 
-/* 🔹 NAV ITEM */
-function NavItem({ icon, label, hideIcon }) {
+function NavItem({ icon, label, hideIcon, onClick }) {
   return (
-    <div className="flex md:flex-col items-center gap-1 text-gray-700 hover:text-[#7c1d1d] cursor-pointer px-3 py-1">
-      {/* 👇 ICON MOBILE PE HAMESHA DIKHEGA */}
+    <div
+      onClick={onClick}
+      className="cursor-pointer flex md:flex-col items-center gap-1 px-4 py-2 text-gray-700 hover:text-[#7c1d1d]"
+    >
       <div className={`${hideIcon ? "hidden md:block" : "block"} text-lg`}>
         {icon}
       </div>
-      <div className="text-xs md:text-sm font-medium">{label}</div>
+      <div className="text-xs md:text-sm font-medium whitespace-nowrap">
+        {label}
+      </div>
     </div>
   );
 }
 
-/* 🔹 HOVER ICON */
 function HoverIcon({ href, icon, label }) {
   return (
-    <div className="relative group cursor-pointer">
+    <div className="relative group">
       <Link to={href}>{icon}</Link>
-      <div className="absolute top-8 -left-6 bg-white border text-xs text-[#7c1d1d] rounded shadow-lg p-2 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition">
+      <div className="absolute top-8 -left-6 bg-white border text-xs text-[#7c1d1d] rounded shadow-lg p-2 opacity-0 group-hover:opacity-100">
         {label}
       </div>
     </div>
