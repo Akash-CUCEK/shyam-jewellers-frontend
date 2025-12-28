@@ -38,10 +38,17 @@ export default function Navbar() {
     };
   }, []);
 
+  /* 🔹 COMMON NAVIGATE (CLOSE EVERYTHING) */
   const go = (url) => {
     setShowJewellery(false);
     setMobileMenuOpen(false);
     navigate(url);
+  };
+
+  /* 🔹 CLOSE FROM ALL JEWELLERY */
+  const closeAllMenus = () => {
+    setShowJewellery(false);
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -50,7 +57,6 @@ export default function Navbar() {
       <div className="flex items-center justify-between px-4 md:px-10 py-2 border-b">
         {/* LEFT */}
         <div className="flex items-center gap-2">
-          {/* MOBILE HAMBURGER */}
           <button
             className="md:hidden text-2xl text-[#7c1d1d]"
             onClick={() => setMobileMenuOpen((p) => !p)}
@@ -72,7 +78,7 @@ export default function Navbar() {
           Shyam Jewellers
         </span>
 
-        {/* DESKTOP SEARCH (SAME LINE – UNCHANGED) */}
+        {/* DESKTOP SEARCH (UNCHANGED) */}
         <div className="hidden md:flex items-center w-full max-w-2xl mx-6 border border-[#7c1d1d] rounded-full px-4 py-1.5">
           <FaSearch className="text-[#7c1d1d] mr-2" />
           <input
@@ -85,7 +91,6 @@ export default function Navbar() {
 
         {/* RIGHT ICONS */}
         <div className="flex items-center gap-4 text-[#7c1d1d] text-xl">
-          {/* DESKTOP ICONS */}
           <div className="hidden md:flex gap-5">
             <HoverIcon href="/reviews" icon={<PiCrown />} label="Reviews" />
             <HoverIcon
@@ -155,7 +160,7 @@ export default function Navbar() {
 
           {showJewellery && (
             <div className="absolute top-full left-0 w-screen bg-white shadow-xl border-t">
-              <AllJewellery onNavigate={() => setShowJewellery(false)} />
+              <AllJewellery onNavigate={closeAllMenus} />
             </div>
           )}
         </div>
