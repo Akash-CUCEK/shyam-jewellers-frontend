@@ -31,12 +31,10 @@ const AddAdminModal = ({ onClose, onSuccess }) => {
     setIsSaving(true);
 
     try {
-      const response = await API.post("/auth/api/v1/admin/registerAdmin", {
-        name,
-        email,
-        phoneNumber,
-        password,
-      });
+      const response = await API.post(
+        "/auth/api/v1/admin/registerAdmin",
+        formData
+      );
 
       toast.success(response.data?.message || "Admin registered successfully");
       onSuccess();
@@ -53,15 +51,28 @@ const AddAdminModal = ({ onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md relative">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
+      <div
+        className="
+          bg-white w-full sm:max-w-md
+          rounded-t-2xl sm:rounded-lg
+          shadow-lg
+          p-5 sm:p-6
+          max-h-[90vh] overflow-y-auto
+          relative
+        "
+      >
+        {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-4 text-2xl text-gray-500 hover:text-gray-700"
+          className="absolute top-3 right-4 text-2xl text-gray-500 hover:text-gray-700"
         >
           &times;
         </button>
-        <h2 className="text-xl font-semibold text-[#6e1414] mb-4">Add Admin</h2>
+
+        <h2 className="text-lg sm:text-xl font-semibold text-[#6e1414] mb-4 text-center sm:text-left">
+          Add Admin
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
@@ -69,36 +80,46 @@ const AddAdminModal = ({ onClose, onSuccess }) => {
             value={formData.name}
             onChange={handleChange}
             placeholder="Name"
-            className="w-full border px-3 py-2 rounded"
+            className="w-full border px-3 py-3 rounded-md text-sm sm:text-base"
           />
+
           <input
             name="email"
+            type="email"
             value={formData.email}
             onChange={handleChange}
             placeholder="Email"
-            type="email"
-            className="w-full border px-3 py-2 rounded"
+            className="w-full border px-3 py-3 rounded-md text-sm sm:text-base"
           />
+
           <input
             name="phoneNumber"
             value={formData.phoneNumber}
             onChange={handleChange}
             placeholder="Phone Number"
-            className="w-full border px-3 py-2 rounded"
+            className="w-full border px-3 py-3 rounded-md text-sm sm:text-base"
           />
+
           <input
             name="password"
+            type="password"
             value={formData.password}
             onChange={handleChange}
             placeholder="Password"
-            type="password"
-            className="w-full border px-3 py-2 rounded"
+            className="w-full border px-3 py-3 rounded-md text-sm sm:text-base"
           />
-          <div className="flex justify-end space-x-4 pt-2">
+
+          {/* Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:justify-end pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              className="
+                w-full sm:w-auto
+                px-4 py-2.5
+                bg-gray-300 text-gray-700
+                rounded-md hover:bg-gray-400
+              "
             >
               Cancel
             </button>
@@ -106,9 +127,14 @@ const AddAdminModal = ({ onClose, onSuccess }) => {
             <button
               type="submit"
               disabled={isSaving}
-              className={`${
-                isSaving ? "opacity-60 cursor-not-allowed" : ""
-              } bg-[#7c1d1d] hover:bg-[#621010] text-white px-6 py-2 rounded-md transition-opacity duration-200`}
+              className={`
+                w-full sm:w-auto
+                px-6 py-2.5
+                bg-[#7c1d1d] hover:bg-[#621010]
+                text-white rounded-md
+                transition
+                ${isSaving ? "opacity-60 cursor-not-allowed" : ""}
+              `}
             >
               {isSaving ? "Adding..." : "Add"}
             </button>

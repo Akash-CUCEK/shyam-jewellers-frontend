@@ -22,16 +22,15 @@ const OfferPhotoSection = () => {
 
   const fetchOfferPhotos = async () => {
     try {
-      const res = await API.post("/auth/api/v1/admin/getOfferPhoto");
+      const res = await API.post("/api/v1/public/getOfferPhoto");
       const response = res.data?.response;
-
       if (!response) return;
 
       const { imgUrl1, imgUrl2, imgUrl3, imgUrl4, imgUrl5 } = response;
       setImages([imgUrl1, imgUrl2, imgUrl3, imgUrl4, imgUrl5]);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load offer images");
+      toast.error("Unable to load offer banners");
     }
   };
 
@@ -52,32 +51,28 @@ const OfferPhotoSection = () => {
     if (!newFile || selectedIndex === null) return;
 
     setIsSaving(true);
-
     try {
-      // ❌ very large image guard (UX)
       if (newFile.size > 20 * 1024 * 1024) {
-        toast.error("Image too large. Choose a smaller image.");
+        toast.error(
+          "Selected image is too large. Please choose a smaller file."
+        );
         return;
       }
 
-      // ✅ resize + compress
       const optimizedFile = await resizeImage(newFile, 1200, 1200, 0.7);
 
       if (optimizedFile.size > MAX_SIZE) {
-        toast.error("Image still exceeds 10MB after compression");
+        toast.error("Image exceeds size limit after optimization");
         return;
       }
 
-      // ⬆️ upload to cloudinary
       const uploadedUrls = await ImageUploader([optimizedFile]);
       const uploadedUrl = uploadedUrls[0];
-
       if (!uploadedUrl) {
-        toast.error("Upload failed");
+        toast.error("Image upload failed. Please try again.");
         return;
       }
 
-      // 💾 save URL in backend
       const res = await API.post("/auth/api/v1/admin/addOfferPhoto", {
         position: selectedIndex + 1,
         imgUrl: uploadedUrl,
@@ -87,10 +82,12 @@ const OfferPhotoSection = () => {
       updatedImages[selectedIndex] = uploadedUrl;
       setImages(updatedImages);
 
-      toast.success(res.data?.response?.response || "Offer photo updated!");
+      toast.success(
+        res.data?.response?.response || "Offer banner updated successfully"
+      );
     } catch (err) {
       console.error(err);
-      toast.error("Something went wrong");
+      toast.error("Something went wrong while saving the banner");
     } finally {
       setIsSaving(false);
       setPreviewImage(null);
@@ -106,38 +103,55 @@ const OfferPhotoSection = () => {
   };
 
   return (
-    <div className="p-4">
-      {/* Preview Modal */}
+    <div className="p-3 sm:p-4">
+      {/* PAGE HEADER */}
+      <div className="mb-4">
+        <h1 className="text-lg sm:text-xl font-semibold text-[#7c1d1d]">
+          Offer Banner Management
+        </h1>
+        <p className="text-xs sm:text-sm text-gray-500">
+          Manage promotional banners displayed on the homepage carousel
+        </p>
+      </div>
+
+      {/* PREVIEW MODAL */}
       {previewImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-40">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full">
-            <h2 className="text-lg font-semibold mb-4">Preview</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 px-3">
+          <div className="bg-white p-4 sm:p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-base sm:text-lg font-semibold mb-1">
+              Banner Preview
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500 mb-3">
+              This banner will be shown on the homepage offer carousel.
+            </p>
+
             <img
               src={previewImage}
-              alt="Preview"
-              className="w-full h-64 object-cover rounded"
+              alt="Homepage Offer Banner Preview"
+              className="w-full h-48 sm:h-64 object-cover rounded"
             />
-            <div className="flex justify-end mt-4 gap-3">
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3 mt-4">
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 bg-gray-400 text-white rounded"
+                className="w-full sm:w-auto px-4 py-2 bg-gray-400 text-white rounded"
               >
-                Cancel
+                Cancel Changes
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-4 py-2 bg-[#7c1d1d] text-white rounded"
+                className="w-full sm:w-auto px-4 py-2 bg-[#7c1d1d] text-white rounded"
               >
-                {isSaving ? "Saving..." : "Save"}
+                {isSaving ? "Saving Banner..." : "Save Banner"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Image Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      {/* IMAGE GRID */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         {images.map((url, index) => (
           <div
             key={index}
@@ -146,20 +160,26 @@ const OfferPhotoSection = () => {
             {url ? (
               <img
                 src={url}
-                alt={`Offer ${index + 1}`}
-                className="w-full h-48 object-cover"
+                alt={`Homepage Offer Banner ${index + 1}`}
+                className="w-full h-36 sm:h-44 md:h-48 object-cover"
               />
             ) : (
-              <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500">
-                No Image
+              <div className="w-full h-36 sm:h-44 md:h-48 bg-gray-200 flex items-center justify-center text-gray-500 text-xs sm:text-sm">
+                Banner Slot Empty
               </div>
             )}
 
             <button
+              title="Edit Banner Image"
               onClick={() => handleEditClick(index)}
-              className="absolute top-2 right-2 bg-white p-1 rounded-full shadow opacity-0 group-hover:opacity-100 transition"
+              className="
+                absolute top-2 right-2
+                bg-white p-1.5 rounded-full shadow
+                opacity-100 sm:opacity-0 sm:group-hover:opacity-100
+                transition
+              "
             >
-              <Pencil size={18} />
+              <Pencil size={16} />
             </button>
 
             <input

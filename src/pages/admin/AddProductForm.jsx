@@ -1,22 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
+import Swal from "sweetalert2";
 import { ImageUploader } from "../../utils/ImageUploader";
 import { API } from "../../utils/API";
 
-/* 🔹 Reusable Label */
+/* 🔹 Label */
 const FieldLabel = ({ text, required = false }) => (
-  <label className="font-semibold text-sm text-gray-700">
+  <label className="block font-semibold text-sm text-gray-700 mb-1">
     {text}
     {required && <span className="text-red-600"> *</span>}
   </label>
 );
 
-export default function AddProductForm({ onCancel, setToast }) {
-  const modalRef = useRef(null);
+export default function AddProductForm({ onCancel, onSuccess }) {
   const fetchedOnceRef = useRef(false);
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
   const [product, setProduct] = useState({
@@ -33,18 +32,17 @@ export default function AddProductForm({ onCancel, setToast }) {
     imageFile: null,
   });
 
-  /* 📦 FETCH CATEGORIES */
+  /* ================= FETCH CATEGORIES ================= */
   useEffect(() => {
     if (fetchedOnceRef.current) return;
     fetchedOnceRef.current = true;
 
     const fetchCategories = async () => {
       try {
-        const res = await API.post("/api/categories/getAllCategory");
-        const list = res?.data?.response?.getCategoriesResponseDTO || [];
-        setCategories(list.filter((c) => c.status === true));
-      } catch (err) {
-        console.error("❌ Failed to load categories", err);
+        const res = await API.post("/api/v1/public/getAllCategory");
+        setCategories(res?.data?.response?.getCategoryUserResponseDTOS || []);
+      } catch {
+        Swal.fire("Error", "Failed to load categories", "error");
       }
     };
 
@@ -52,35 +50,36 @@ export default function AddProductForm({ onCancel, setToast }) {
   }, []);
 
   const inputStyle =
-    "border border-gray-300 p-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-[#7c1d1d]";
+    "border border-gray-300 p-2 rounded-lg w-full focus:ring-2 focus:ring-[#7c1d1d]";
 
-  /* 🔁 HANDLE CHANGE */
+  /* ================= HANDLE CHANGE ================= */
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
 
     if (type === "file") {
       const file = files[0];
       if (!file) return;
-      setProduct((prev) => ({ ...prev, imageFile: file }));
+      setProduct((p) => ({ ...p, imageFile: file }));
       setPreviewImage(URL.createObjectURL(file));
       return;
     }
 
+    // ⛔ block negative values
     if (
-      ["price", "discountPercentage", "weight", "quantity"].includes(name) &&
+      ["price", "weight", "quantity", "discountPercentage"].includes(name) &&
       Number(value) < 0
     ) {
       return;
     }
 
-    setProduct((prev) => ({ ...prev, [name]: value }));
+    setProduct((p) => ({ ...p, [name]: value }));
   };
 
-  /* ✅ SUBMIT */
+  /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const invalid =
+    if (
       !product.category ||
       !product.price ||
       !product.weight ||
@@ -88,22 +87,26 @@ export default function AddProductForm({ onCancel, setToast }) {
       !product.quantity ||
       !product.gender ||
       !product.shortDescription ||
-      !product.imageFile;
-
-    if (invalid) {
-      setError(true);
+      !product.imageFile
+    ) {
+      Swal.fire(
+        "Validation Error",
+        "Please fill all required fields",
+        "warning"
+      );
       return;
     }
 
     try {
       setLoading(true);
-      setError(false);
 
       const imageUrls = await ImageUploader([product.imageFile]);
       if (!imageUrls.length) throw new Error("Image upload failed");
 
       const payload = {
-        email: sessionStorage.getItem("email"),
+        email:
+          sessionStorage.getItem("email") ||
+          sessionStorage.getItem("userEmail"),
         category: product.category,
         price: Number(product.price),
         discountPercentage: Number(product.discountPercentage || 0),
@@ -117,200 +120,188 @@ export default function AddProductForm({ onCancel, setToast }) {
         imageUrl: imageUrls[0],
       };
 
-      await API.post("/api/v1/products/addProduct", payload);
+      const res = await API.post("/auth/api/v1/admin/addProduct", payload);
 
-      onCancel();
-      setToast({
-        name: "Product",
-        message: "added successfully",
-      });
-    } catch (err) {
-      console.error("❌ Failed to add product", err);
-      alert("❌ Failed to add product");
+      // ✅ ONLY send response to parent
+      onSuccess(res.data.response);
+    } catch {
+      Swal.fire("Error", "Failed to add product", "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto pt-10">
-      <div
-        ref={modalRef}
-        className="bg-white w-full max-w-2xl rounded-xl p-6 shadow-lg"
-      >
-        <h2 className="text-2xl font-bold text-[#7c1d1d] mb-6 text-center">
-          Add New Product
-        </h2>
+    <div className="fixed inset-0 z-50 bg-black/50 flex justify-center overflow-y-auto px-3 py-6">
+      <div className="bg-white w-full max-w-3xl rounded-xl shadow-xl max-h-[90vh] flex flex-col">
+        {/* HEADER */}
+        <div className="p-5 border-b sticky top-0 bg-white z-10">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#7c1d1d] text-center">
+            Add New Product
+          </h2>
+        </div>
 
-        {error && (
-          <div className="mb-4 bg-red-600 text-white p-2 rounded">
-            ⚠️ Please fill all required fields
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* CATEGORY */}
-          <div>
-            <FieldLabel text="Category" required />
-            <select
-              name="category"
-              value={product.category}
-              onChange={handleChange}
-              className={inputStyle}
-            >
-              <option value="">Select Category</option>
-              {categories.map((c) => (
-                <option key={c.categoryId} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* PRICE & DISCOUNT */}
-          <div className="grid grid-cols-2 gap-4">
+        {/* BODY */}
+        <div className="overflow-y-auto p-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <FieldLabel text="Price" required />
-              <input
-                type="number"
-                name="price"
-                value={product.price}
-                onChange={handleChange}
-                className={inputStyle}
-              />
-            </div>
-
-            <div>
-              <FieldLabel text="Discount Percentage" />
-              <input
-                type="number"
-                name="discountPercentage"
-                value={product.discountPercentage}
-                onChange={handleChange}
-                className={inputStyle}
-              />
-            </div>
-          </div>
-
-          {/* WEIGHT & MATERIAL */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <FieldLabel text="Weight (g)" required />
-              <input
-                type="number"
-                name="weight"
-                value={product.weight}
-                onChange={handleChange}
-                className={inputStyle}
-              />
-            </div>
-
-            <div>
-              <FieldLabel text="Material Type" required />
+              <FieldLabel text="Category" required />
               <select
-                name="materialType"
-                value={product.materialType}
+                name="category"
+                value={product.category}
                 onChange={handleChange}
                 className={inputStyle}
               >
-                <option value="">Select Material</option>
-                <option value="Gold">Gold</option>
-                <option value="Silver">Silver</option>
+                <option value="">Select Category</option>
+                {categories.map((c) => (
+                  <option key={c.categoryId} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </div>
-          </div>
 
-          {/* QUANTITY */}
-          <div>
-            <FieldLabel text="Quantity" required />
-            <input
-              type="number"
-              name="quantity"
-              value={product.quantity}
-              onChange={handleChange}
-              className={inputStyle}
-            />
-          </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <FieldLabel text="Price" required />
+                <input
+                  type="number"
+                  name="price"
+                  min="0"
+                  value={product.price}
+                  onChange={handleChange}
+                  className={inputStyle}
+                />
+              </div>
+              <div>
+                <FieldLabel text="Discount %" />
+                <input
+                  type="number"
+                  name="discountPercentage"
+                  min="0"
+                  max="100"
+                  value={product.discountPercentage}
+                  onChange={handleChange}
+                  className={inputStyle}
+                />
+              </div>
+            </div>
 
-          {/* GENDER & STATUS */}
-          <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <FieldLabel text="Weight (g)" required />
+                <input
+                  type="number"
+                  name="weight"
+                  min="0"
+                  value={product.weight}
+                  onChange={handleChange}
+                  className={inputStyle}
+                />
+              </div>
+              <div>
+                <FieldLabel text="Material Type" required />
+                <select
+                  name="materialType"
+                  value={product.materialType}
+                  onChange={handleChange}
+                  className={inputStyle}
+                >
+                  <option value="">Select</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Silver">Silver</option>
+                </select>
+              </div>
+            </div>
+
             <div>
-              <FieldLabel text="Gender" required />
-              <select
-                name="gender"
-                value={product.gender}
+              <FieldLabel text="Quantity" required />
+              <input
+                type="number"
+                name="quantity"
+                min="0"
+                value={product.quantity}
                 onChange={handleChange}
                 className={inputStyle}
-              >
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Child">Child</option>
-              </select>
-            </div>
-
-            <div>
-              <FieldLabel text="Status" />
-              <select
-                name="isAvailable"
-                value={product.isAvailable}
-                onChange={handleChange}
-                className={inputStyle}
-              >
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
-            </div>
-          </div>
-
-          {/* DESCRIPTIONS */}
-          <div>
-            <FieldLabel text="Short Description" required />
-            <textarea
-              name="shortDescription"
-              value={product.shortDescription}
-              onChange={handleChange}
-              className={inputStyle}
-            />
-          </div>
-
-          <div>
-            <FieldLabel text="Full Description" />
-            <textarea
-              name="fullDescription"
-              value={product.fullDescription}
-              onChange={handleChange}
-              className={inputStyle}
-            />
-          </div>
-
-          {/* IMAGE */}
-          <div>
-            <FieldLabel text="Product Image" required />
-            <input type="file" accept="image/*" onChange={handleChange} />
-            {previewImage && (
-              <img
-                src={previewImage}
-                alt="preview"
-                className="h-24 rounded mt-2"
               />
-            )}
-          </div>
+            </div>
 
-          {/* ACTIONS */}
-          <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={onCancel}>
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-[#7c1d1d] text-white px-4 py-2 rounded"
-            >
-              {loading ? "Adding..." : "Add Product"}
-            </button>
-          </div>
-        </form>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <FieldLabel text="Gender" required />
+                <select
+                  name="gender"
+                  value={product.gender}
+                  onChange={handleChange}
+                  className={inputStyle}
+                >
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Child">Child</option>
+                </select>
+              </div>
+              <div>
+                <FieldLabel text="Status" />
+                <select
+                  name="isAvailable"
+                  value={product.isAvailable}
+                  onChange={handleChange}
+                  className={inputStyle}
+                >
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <FieldLabel text="Short Description" required />
+              <textarea
+                name="shortDescription"
+                value={product.shortDescription}
+                onChange={handleChange}
+                className={inputStyle}
+              />
+            </div>
+
+            <div>
+              <FieldLabel text="Full Description" />
+              <textarea
+                name="fullDescription"
+                value={product.fullDescription}
+                onChange={handleChange}
+                className={inputStyle}
+              />
+            </div>
+
+            <div>
+              <FieldLabel text="Product Image" required />
+              <input type="file" accept="image/*" onChange={handleChange} />
+              {previewImage && (
+                <img
+                  src={previewImage}
+                  alt="preview"
+                  className="h-24 mt-2 rounded border"
+                />
+              )}
+            </div>
+          </form>
+        </div>
+
+        {/* FOOTER */}
+        <div className="p-4 border-t bg-white flex justify-end gap-3 sticky bottom-0">
+          <button onClick={onCancel} className="px-4 py-2 border rounded">
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="bg-[#7c1d1d] text-white px-5 py-2 rounded"
+          >
+            {loading ? "Adding..." : "Add Product"}
+          </button>
+        </div>
       </div>
     </div>
   );

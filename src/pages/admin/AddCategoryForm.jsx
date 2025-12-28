@@ -2,21 +2,47 @@ import React, { useState } from "react";
 import Swal from "sweetalert2";
 import XLSX from "xlsx-js-style";
 import { API } from "../../utils/API";
+import { ImageUploader } from "../../utils/ImageUploader";
 
 export default function AddCategoryForm({ onClose, onSuccess }) {
   const [uploadType, setUploadType] = useState("single");
-  const [formData, setFormData] = useState({ name: "", status: "Active" });
   const [excelFile, setExcelFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
 
-  const userEmail = sessionStorage.getItem("userEmail") || "";
+  const userEmail = sessionStorage.getItem("userEmail") || "SYSTEM";
 
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const [formData, setFormData] = useState({
+    name: "",
+    status: "Active",
+    showOnHome: false,
+    imageFile: null,
+  });
 
-  const handleExcelChange = (e) => setExcelFile(e.target.files[0]);
+  /* 🔁 HANDLE CHANGE */
+  const handleChange = (e) => {
+    const { name, value, type, checked, files } = e.target;
 
-  // ✅ Download sample Excel
+    if (type === "file") {
+      const file = files[0];
+      if (!file) return;
+
+      setFormData((prev) => ({ ...prev, imageFile: file }));
+      setPreviewImage(URL.createObjectURL(file));
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleExcelChange = (e) => {
+    setExcelFile(e.target.files[0]);
+  };
+
+  /* 📥 SAMPLE EXCEL */
   const downloadSampleExcel = () => {
     const data = [
       [
@@ -30,30 +56,40 @@ export default function AddCategoryForm({ onClose, onSuccess }) {
     XLSX.writeFile(wb, "CategorySample.xlsx");
   };
 
+  /* ✅ SUBMIT */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // ✅ Single upload
       if (uploadType === "single") {
-        await API.post("/api/categories/addCategory", {
+        if (!formData.name || !formData.imageFile) {
+          Swal.fire("Error", "Category name & image required", "error");
+          setLoading(false);
+          return;
+        }
+
+        // 🔼 Upload image
+        const imageUrls = await ImageUploader([formData.imageFile]);
+        if (!imageUrls.length) throw new Error("Image upload failed");
+
+        await API.post("/auth/api/v1/admin/addCategory", {
           name: formData.name,
           status: formData.status === "Active",
           createdBy: userEmail,
+          imageUrl: imageUrls[0],
+          showOnHome: formData.showOnHome,
         });
 
         Swal.fire("Success", "Category added successfully", "success");
-      }
-
-      // ✅ Excel upload
-      else {
+      } else {
+        // 📤 EXCEL UPLOAD
         const fd = new FormData();
         fd.append("file", excelFile);
         fd.append("createdBy", userEmail);
 
         await API.post("/api/categories/uploadExcel", fd, {
-          responseType: "blob", // ⭐ KEY FIX
+          responseType: "blob",
         });
 
         Swal.fire("Success", "Categories uploaded successfully", "success");
@@ -62,32 +98,6 @@ export default function AddCategoryForm({ onClose, onSuccess }) {
       onSuccess();
       onClose();
     } catch (err) {
-      // ✅ Excel validation error (400 + blob)
-      if (
-        uploadType === "excel" &&
-        err.response?.status === 400 &&
-        err.response.data instanceof Blob
-      ) {
-        const blob = new Blob([err.response.data], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        });
-
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "Category_Error_Report.xlsx";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-
-        Swal.fire(
-          "Validation Error",
-          "Excel has validation errors. Error file downloaded.",
-          "error"
-        );
-        return;
-      }
-
       Swal.fire(
         "Error",
         err.response?.data?.message || "Operation failed",
@@ -99,33 +109,39 @@ export default function AddCategoryForm({ onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl w-[90%] max-w-lg relative">
+    /* 🌑 BACKDROP */
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-3">
+      {/* 📦 MODAL */}
+      <div className="bg-white w-full max-w-lg rounded-xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto relative">
+        {/* ❌ Close */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-4 text-2xl font-bold"
+          className="absolute top-3 right-4 text-2xl text-gray-500 hover:text-red-600"
         >
           ✕
         </button>
 
         <h2 className="text-xl font-bold mb-4 text-[#7c1d1d]">Add Category</h2>
 
-        <div className="flex mb-4">
+        {/* 🔀 Toggle */}
+        <div className="flex mb-4 rounded overflow-hidden border">
           <button
-            className={`flex-1 p-2 ${
-              uploadType === "single" && "bg-[#7c1d1d] text-white"
-            }`}
-            onClick={() => setUploadType("single")}
             type="button"
+            onClick={() => setUploadType("single")}
+            className={`flex-1 py-2 font-medium ${
+              uploadType === "single"
+                ? "bg-[#7c1d1d] text-white"
+                : "bg-gray-100"
+            }`}
           >
             Single
           </button>
           <button
-            className={`flex-1 p-2 ${
-              uploadType === "excel" && "bg-[#7c1d1d] text-white"
-            }`}
-            onClick={() => setUploadType("excel")}
             type="button"
+            onClick={() => setUploadType("excel")}
+            className={`flex-1 py-2 font-medium ${
+              uploadType === "excel" ? "bg-[#7c1d1d] text-white" : "bg-gray-100"
+            }`}
           >
             Excel
           </button>
@@ -140,25 +156,57 @@ export default function AddCategoryForm({ onClose, onSuccess }) {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="w-full p-2 border rounded"
+                className="w-full px-3 py-3 border rounded-md"
               />
+
+              {/* 📸 IMAGE */}
+              <div>
+                <label className="text-sm font-semibold">
+                  Category Image *
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleChange}
+                  required
+                  className="mt-1"
+                />
+                {previewImage && (
+                  <img
+                    src={previewImage}
+                    alt="preview"
+                    className="h-28 mt-2 rounded border object-cover"
+                  />
+                )}
+              </div>
 
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full p-2 border rounded"
+                className="w-full px-3 py-3 border rounded-md"
               >
                 <option>Active</option>
                 <option>Inactive</option>
               </select>
+
+              {/* 🏠 SHOW ON HOME */}
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="showOnHome"
+                  checked={formData.showOnHome}
+                  onChange={handleChange}
+                />
+                Show on Home Page
+              </label>
             </>
           ) : (
             <>
               <button
                 type="button"
                 onClick={downloadSampleExcel}
-                className="bg-green-600 text-white px-3 py-1 rounded"
+                className="bg-green-600 text-white px-4 py-2 rounded"
               >
                 Download Sample
               </button>
@@ -168,18 +216,24 @@ export default function AddCategoryForm({ onClose, onSuccess }) {
                 accept=".xlsx,.xls"
                 onChange={handleExcelChange}
                 required
-                className="w-full p-2 border rounded"
+                className="w-full px-3 py-3 border rounded-md"
               />
             </>
           )}
 
-          <div className="flex justify-end gap-3">
-            <button type="button" onClick={onClose}>
+          {/* ACTIONS */}
+          <div className="flex justify-end gap-3 pt-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 rounded"
+            >
               Cancel
             </button>
+
             <button
               disabled={loading || (uploadType === "excel" && !excelFile)}
-              className="bg-[#7c1d1d] text-white px-4 py-2 rounded"
+              className="bg-[#7c1d1d] text-white px-5 py-2 rounded disabled:opacity-50"
             >
               {loading ? "Processing..." : "Save"}
             </button>

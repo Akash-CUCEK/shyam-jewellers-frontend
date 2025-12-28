@@ -1,32 +1,27 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { Outlet } from "react-router-dom";
+import AdminHeader from "./AdminHeader";
 import AdminSidebar from "./AdminSidebar";
-import RepairModal from "./RepairModal";
-import CustomerModal from "./CustomerModal";
-import FeedbackModal from "./FeedbackModal";
+import AdminMobileDrawer from "./AdminMobileDrawer";
 
 export default function AdminLayout() {
-  const [modalView, setModalView] = useState(null);
+  const [openMobile, setOpenMobile] = useState(false);
 
   return (
-    <>
-      <div className="flex">
-        <AdminSidebar onOpenModal={(type) => setModalView(type)} />
-        <div className="flex-1 p-6">
-          <h2 className="text-2xl font-bold text-[#0D1B2A]">
-            Welcome to Admin Dashboard
-          </h2>
-        </div>
-      </div>
+    <div className="flex min-h-screen bg-gray-50">
+      {/* DESKTOP SIDEBAR */}
+      <AdminSidebar />
 
-      {modalView === "repair" && (
-        <RepairModal onClose={() => setModalView(null)} />
-      )}
-      {modalView === "customers" && (
-        <CustomerModal onClose={() => setModalView(null)} />
-      )}
-      {modalView === "feedback" && (
-        <FeedbackModal onClose={() => setModalView(null)} />
-      )}
-    </>
+      {/* MOBILE DRAWER */}
+      <AdminMobileDrawer open={openMobile} close={() => setOpenMobile(false)} />
+
+      {/* MAIN */}
+      <div className="flex-1 flex flex-col">
+        <AdminHeader onOpenMobileMenu={() => setOpenMobile(true)} />
+        <main className="p-4 flex-1">
+          <Outlet />
+        </main>
+      </div>
+    </div>
   );
 }

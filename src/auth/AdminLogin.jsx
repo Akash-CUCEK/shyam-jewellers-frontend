@@ -5,7 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import { API } from "../utils/API";
 import { toast } from "react-hot-toast";
 
-const RESEND_TIME = 60; // 1 minute
+const RESEND_TIME = 60;
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -21,16 +21,16 @@ export default function AdminLogin() {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
-  /* 🔘 COMMON BUTTON STYLE (FREEZE + FADE) */
+  /* BUTTON */
   const buttonClass = (disabled) =>
-    `w-full py-3 rounded-xl font-semibold transition-all duration-300
+    `w-full py-3 rounded-xl font-semibold transition
      ${
        disabled
-         ? "bg-[#5A0F1B]/60 opacity-60 cursor-not-allowed"
-         : "bg-[#5A0F1B] hover:bg-[#7A1A25] cursor-pointer"
+         ? "bg-[#5A0F1B]/60 cursor-not-allowed"
+         : "bg-[#5A0F1B] hover:bg-[#7A1A25]"
      } text-white`;
 
-  /* ⏱ TIMER */
+  /* TIMER */
   useEffect(() => {
     if (!otpSent) return;
 
@@ -41,15 +41,12 @@ export default function AdminLogin() {
       return () => clearInterval(interval);
     }
 
-    if (timer === 0) {
-      setCanResend(true);
-    }
+    if (timer === 0) setCanResend(true);
   }, [otpSent, timer]);
 
-  /* COMMON ERROR HANDLER */
+  /* ERROR */
   const showError = (err) => {
     const messages = err?.response?.data?.errors?.messages;
-
     if (Array.isArray(messages)) {
       messages.forEach((e) => toast.error(e.message));
     } else {
@@ -57,7 +54,7 @@ export default function AdminLogin() {
     }
   };
 
-  /* STEP 1 – LOGIN (SEND OTP) */
+  /* LOGIN */
   const handleLogin = async (e) => {
     e.preventDefault();
     if (loading) return;
@@ -110,7 +107,7 @@ export default function AdminLogin() {
     }
   };
 
-  /* OTP INPUT CHANGE */
+  /* OTP INPUT */
   const handleOtpChange = (e, i) => {
     const val = e.target.value;
     if (!/^[0-9]?$/.test(val)) return;
@@ -122,24 +119,17 @@ export default function AdminLogin() {
     if (val && i < 5) inputRefs.current[i + 1]?.focus();
   };
 
-  /* OTP KEY HANDLING */
   const handleOtpKeyDown = (e, i) => {
     if (e.key === "Backspace") {
       if (otp[i]) {
         const updated = [...otp];
         updated[i] = "";
         setOtp(updated);
-      } else if (i > 0) {
-        inputRefs.current[i - 1]?.focus();
-      }
+      } else if (i > 0) inputRefs.current[i - 1]?.focus();
     }
-
-    if (e.key === "ArrowLeft" && i > 0) inputRefs.current[i - 1]?.focus();
-
-    if (e.key === "ArrowRight" && i < 5) inputRefs.current[i + 1]?.focus();
   };
 
-  /* STEP 2 – VERIFY OTP */
+  /* VERIFY OTP */
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
@@ -156,12 +146,12 @@ export default function AdminLogin() {
 
       sessionStorage.setItem("authToken", token);
       sessionStorage.setItem("role", decoded.role);
-      sessionStorage.setItem("email", email);
+      sessionStorage.setItem("userEmail", email);
 
       login(token);
       toast.success(message);
 
-      setTimeout(() => navigate("/admin/home"), 800);
+      navigate("/admin/home");
     } catch (err) {
       showError(err);
     } finally {
@@ -171,20 +161,25 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4">
-      <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-        {/* LOGO */}
+      <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        {/* LOGO – CLEAN & SAFE */}
         <div className="flex justify-center md:justify-start">
           <img
             src="/AdminLogo.jpeg"
             alt="Shyama Jewellers"
-            className="w-[200px] object-contain"
+            className="
+              w-[170px]
+              md:w-[240px]
+              lg:w-[260px]
+              object-contain
+            "
           />
         </div>
 
         {/* LOGIN CARD */}
         <div className="flex justify-center">
-          <div className="w-full max-w-sm bg-[#FAF8F4] p-8 rounded-2xl shadow-xl">
-            <h1 className="text-center text-2xl font-semibold text-[#5A0F1B]">
+          <div className="w-full max-w-sm bg-[#FAF8F4] p-8 rounded-2xl shadow-lg border border-[#eee]">
+            <h1 className="text-center text-xl font-semibold text-[#5A0F1B]">
               SHYAMA JEWELLERS
             </h1>
             <p className="text-center text-sm text-gray-600 mb-6">
@@ -248,26 +243,18 @@ export default function AdminLogin() {
                   {loading ? "Verifying..." : "VERIFY & LOGIN"}
                 </button>
 
-                {/* 🔁 RESEND OTP + TIMER */}
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    disabled={!canResend || loading}
-                    onClick={handleResendOtp}
-                    className={`text-sm underline transition ${
-                      canResend && !loading
-                        ? "text-[#7A5A2E] cursor-pointer"
-                        : "text-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    Resend OTP
-                    {!canResend && (
-                      <span className="ml-1">
-                        ({String(Math.floor(timer / 60)).padStart(2, "0")}:
-                        {String(timer % 60).padStart(2, "0")})
-                      </span>
-                    )}
-                  </button>
+                <div className="mt-4 text-sm text-gray-500">
+                  {canResend ? (
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      className="underline text-[#7A5A2E]"
+                    >
+                      Resend OTP
+                    </button>
+                  ) : (
+                    <>Resend OTP in {timer}s</>
+                  )}
                 </div>
               </form>
             )}

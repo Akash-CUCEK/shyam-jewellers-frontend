@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import AddCategoryForm from "./AddCategoryForm";
@@ -11,111 +11,76 @@ export default function CategoryManagement() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [viewCategory, setViewCategory] = useState(null);
   const [editCategoryId, setEditCategoryId] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // ✅ Fetch categories
+  const fetchedOnce = useRef(false);
+
+  /* ================= FETCH ================= */
   const fetchCategories = async () => {
+    setLoading(true);
     try {
-      const res = await API.post("/api/categories/getAllCategory");
-
-      if (res.data?.response?.getCategoriesResponseDTO && !res.data?.errors) {
-        const mapped = res.data.response.getCategoriesResponseDTO.map(
-          (cat) => ({
+      const res = await API.post("/auth/api/v1/admin/getAllCategory");
+      if (res.data?.response?.getCategoriesResponseDTO) {
+        setCategories(
+          res.data.response.getCategoriesResponseDTO.map((cat) => ({
             id: cat.categoryId,
-            name: cat.name || "N/A",
+            name: cat.name,
             date: cat.createdAt
               ? new Date(cat.createdAt).toLocaleDateString()
               : "N/A",
             status: cat.status ? "Active" : "Inactive",
-          })
-        );
-
-        setCategories(mapped);
-      } else {
-        Swal.fire(
-          "Failed",
-          res.data?.errors?.messages?.[0]?.message || "Invalid category list",
-          "error"
+            showOnHome: cat.showOnHome,
+          }))
         );
       }
-    } catch (error) {
-      Swal.fire(
-        "Error",
-        error.response?.data?.errors?.messages?.[0]?.message ||
-          "Something went wrong",
-        "error"
-      );
+    } catch {
+      Swal.fire("Error", "Failed to load categories", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCategories();
+    if (!fetchedOnce.current) {
+      fetchedOnce.current = true;
+      fetchCategories();
+    }
   }, []);
 
-  // ✅ View category (FIXED)
+  /* ================= VIEW ================= */
   const handleViewClick = async (cat) => {
     try {
-      const res = await API.post("/api/categories/getCategory", {
+      const res = await API.post("/auth/api/v1/admin/getCategory", {
         id: cat.id,
       });
-
       if (res.data?.response && !res.data?.errors) {
         setViewCategory(res.data.response);
-      } else {
-        Swal.fire(
-          "Failed",
-          res.data?.errors?.messages?.[0]?.message ||
-            "Could not fetch category",
-          "error"
-        );
       }
-    } catch (err) {
-      Swal.fire(
-        "Error",
-        err.response?.data?.errors?.messages?.[0]?.message ||
-          "Something went wrong",
-        "error"
-      );
+    } catch {
+      Swal.fire("Error", "Unable to fetch category details", "error");
     }
   };
 
-  // ✅ Delete category (FIXED)
+  /* ================= DELETE ================= */
   const handleDeleteClick = async (cat) => {
     const confirm = await Swal.fire({
-      title: "Are you sure?",
-      text: `Delete category ID ${cat.id}?`,
+      title: "Delete Category?",
+      text: `Category ID ${cat.id}`,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
+      confirmButtonColor: "#7c1d1d",
     });
 
     if (!confirm.isConfirmed) return;
-    setDeletingId(cat.id);
 
     try {
-      const res = await API.delete("/api/categories/deleteCategory", {
+      await API.delete("/auth/api/v1/admin/deleteCategory", {
         data: { id: cat.id },
       });
-
-      if (res.data?.response && !res.data?.errors) {
-        Swal.fire("Success", "Category deleted successfully", "success");
-        fetchCategories();
-      } else {
-        Swal.fire(
-          "Failed",
-          res.data?.errors?.messages?.[0]?.message || "Delete failed",
-          "error"
-        );
-      }
-    } catch (err) {
-      Swal.fire(
-        "Error",
-        err.response?.data?.errors?.messages?.[0]?.message ||
-          "Something went wrong",
-        "error"
-      );
-    } finally {
-      setDeletingId(null);
+      Swal.fire("Deleted", "Category removed", "success");
+      fetchCategories();
+    } catch {
+      Swal.fire("Error", "Delete failed", "error");
     }
   };
 
@@ -126,56 +91,183 @@ export default function CategoryManagement() {
   );
 
   return (
-    <div className="p-6 bg-[#f9f9f9] min-h-screen">
-      <div className="flex justify-between mb-4">
+    <div className="p-4 sm:p-6 bg-[#f9f9f9] min-h-screen">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-[#7c1d1d]">
           Category Management
         </h1>
         <button
           onClick={() => setShowAddForm(true)}
-          className="bg-[#6e1414] text-white px-4 py-2 rounded"
+          className="bg-[#7c1d1d] text-white px-5 py-2 rounded-lg shadow"
         >
           Add Category
         </button>
       </div>
 
+      {/* SEARCH */}
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search"
-        className="mb-4 p-2 border rounded w-full max-w-md"
+        placeholder="Search by name or ID..."
+        className="mb-5 px-3 py-2 border rounded-lg 
+           w-full sm:w-72 md:w-64"
       />
 
-      <table className="w-full bg-white rounded shadow">
-        <thead className="bg-[#f1f1f1]">
-          <tr>
-            <th className="p-3">ID</th>
-            <th>Name</th>
-            <th>Date</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredCategories.map((cat, i) => (
-            <tr key={cat.id} className={i % 2 ? "bg-[#f9eaea]" : ""}>
-              <td className="p-3">{cat.id}</td>
-              <td>{cat.name}</td>
-              <td>{cat.date}</td>
-              <td>{cat.status}</td>
-              <td className="flex gap-3 p-3">
-                <FaEye onClick={() => handleViewClick(cat)} />
-                <FaEdit onClick={() => setEditCategoryId(cat.id)} />
-                <FaTrash
-                  onClick={() => handleDeleteClick(cat)}
-                  className="text-red-600"
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* ================= DESKTOP TABLE ================= */}
+      {!loading && filteredCategories.length > 0 && (
+        <div className="hidden md:block bg-white rounded-xl shadow overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#f1f1f1] text-sm">
+              <tr>
+                <th className="p-4 text-[#7c1d1d]">ID</th>
+                <th className="p-4 text-[#7c1d1d]">Name</th>
+                <th className="p-4 text-[#7c1d1d]">Date</th>
+                <th className="p-4 text-[#7c1d1d]">Show On Home</th>
+                <th className="p-4 text-[#7c1d1d]">Status</th>
+                <th className="p-4 text-[#7c1d1d]">Actions</th>
+              </tr>
+            </thead>
 
+            <tbody>
+              {filteredCategories.map((cat, i) => (
+                <tr
+                  key={cat.id}
+                  className={`border-t ${
+                    i % 2 === 0 ? "bg-white" : "bg-[#faf0f0]"
+                  }`}
+                >
+                  <td className="p-4">{cat.id}</td>
+                  <td className="p-4 font-medium">{cat.name}</td>
+                  <td className="p-4">{cat.date}</td>
+                  <td className="p-4 text-center">
+                    {cat.showOnHome ? "Yes" : "No"}
+                  </td>
+                  <td className="p-4 text-center">{cat.status}</td>
+                  <td className="p-4">
+                    <div className="flex gap-4 text-lg">
+                      <FaEye onClick={() => handleViewClick(cat)} />
+                      <FaEdit onClick={() => setEditCategoryId(cat.id)} />
+                      <FaTrash
+                        className="text-red-600"
+                        onClick={() => handleDeleteClick(cat)}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ================= MOBILE VIEW ================= */}
+      {!loading && filteredCategories.length > 0 && (
+        <div className="block md:hidden space-y-4">
+          {filteredCategories.map((cat) => (
+            <div
+              key={cat.id}
+              className="bg-white rounded-xl shadow p-4 space-y-3"
+            >
+              {/* NAME + STATUS (TOP ROW) */}
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-[#7c1d1d] text-lg">
+                  {cat.name}
+                </h3>
+
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    cat.status === "Active"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  {cat.status}
+                </span>
+              </div>
+
+              {/* DETAILS */}
+              <p className="text-sm text-gray-700">
+                <b>ID:</b> {cat.id}
+              </p>
+
+              <p className="text-sm text-gray-700">
+                <b>Date:</b> {cat.date}
+              </p>
+
+              <p className="text-sm text-gray-700">
+                <b>Show On Home:</b>{" "}
+                <span
+                  className={`font-semibold ${
+                    cat.showOnHome ? "text-green-600" : "text-gray-500"
+                  }`}
+                >
+                  {cat.showOnHome ? "Yes" : "No"}
+                </span>
+              </p>
+
+              {/* ACTIONS */}
+              <div className="flex gap-6 pt-2 text-lg text-gray-600">
+                <FaEye
+                  className="cursor-pointer"
+                  onClick={() => handleViewClick(cat)}
+                />
+                <FaEdit
+                  className="cursor-pointer"
+                  onClick={() => setEditCategoryId(cat.id)}
+                />
+                <FaTrash
+                  className="cursor-pointer text-red-600"
+                  onClick={() => handleDeleteClick(cat)}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ================= VIEW MODAL ================= */}
+      {viewCategory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-3">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md relative shadow-xl">
+            <button
+              onClick={() => setViewCategory(null)}
+              className="absolute top-3 right-4 text-xl font-bold"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4 text-[#7c1d1d]">
+              Category Details
+            </h2>
+
+            {viewCategory.imageUrl && (
+              <img
+                src={viewCategory.imageUrl}
+                alt={viewCategory.name}
+                className="w-full h-44 object-cover rounded-lg border mb-4"
+              />
+            )}
+
+            <div className="space-y-2 text-sm">
+              <p>
+                <b>ID:</b> {viewCategory.categoryId}
+              </p>
+              <p>
+                <b>Name:</b> {viewCategory.name}
+              </p>
+              <p>
+                <b>Show On Home:</b> {viewCategory.showOnHome ? "Yes" : "No"}
+              </p>
+              <p>
+                <b>Status:</b> {viewCategory.status ? "Active" : "Inactive"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD */}
       {showAddForm && (
         <AddCategoryForm
           onClose={() => setShowAddForm(false)}
@@ -183,31 +275,13 @@ export default function CategoryManagement() {
         />
       )}
 
+      {/* EDIT */}
       {editCategoryId && (
         <EditCategoryForm
           categoryId={editCategoryId}
           onClose={() => setEditCategoryId(null)}
           onSuccess={fetchCategories}
         />
-      )}
-
-      {viewCategory && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded w-[500px]">
-            <button
-              onClick={() => setViewCategory(null)}
-              className="float-right"
-            >
-              ✕
-            </button>
-            <h2 className="text-xl mb-4">Category Details</h2>
-            {Object.entries(viewCategory).map(([k, v]) => (
-              <p key={k}>
-                <b>{k}</b>: {String(v)}
-              </p>
-            ))}
-          </div>
-        </div>
       )}
     </div>
   );

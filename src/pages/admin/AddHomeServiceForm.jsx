@@ -34,9 +34,26 @@ export default function AddHomeServiceForm({ onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-lg">
-        <h2 className="text-xl font-semibold mb-5 text-[#7c1d1d]">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
+      <div
+        className="
+          bg-white w-full sm:max-w-lg
+          rounded-t-2xl sm:rounded-xl
+          p-5 sm:p-6
+          shadow-lg
+          max-h-[90vh] overflow-y-auto
+          relative
+        "
+      >
+        {/* ❌ Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-4 text-2xl text-gray-500 hover:text-black"
+        >
+          ✕
+        </button>
+
+        <h2 className="text-lg sm:text-xl font-semibold mb-5 text-[#7c1d1d] text-center sm:text-left">
           Add Home Service Request
         </h2>
 
@@ -50,7 +67,7 @@ export default function AddHomeServiceForm({ onClose, onSuccess }) {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
-              className="w-full p-2 border rounded"
+              className="w-full px-3 py-3 border rounded-md text-sm sm:text-base"
               placeholder="Enter customer name"
             />
           </div>
@@ -66,7 +83,7 @@ export default function AddHomeServiceForm({ onClose, onSuccess }) {
                 setForm({ ...form, phoneNumber: e.target.value })
               }
               required
-              className="w-full p-2 border rounded"
+              className="w-full px-3 py-3 border rounded-md text-sm sm:text-base"
               placeholder="Enter phone number"
             />
           </div>
@@ -78,7 +95,7 @@ export default function AddHomeServiceForm({ onClose, onSuccess }) {
               value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
               required
-              className="w-full p-2 border rounded"
+              className="w-full px-3 py-3 border rounded-md text-sm sm:text-base"
               placeholder="Enter address"
             />
           </div>
@@ -94,7 +111,7 @@ export default function AddHomeServiceForm({ onClose, onSuccess }) {
                 setForm({ ...form, serviceType: e.target.value })
               }
               required
-              className="w-full p-2 border rounded"
+              className="w-full px-3 py-3 border rounded-md text-sm sm:text-base"
             >
               <option value="">Select Service</option>
               {serviceTypes.map((s) => (
@@ -113,24 +130,24 @@ export default function AddHomeServiceForm({ onClose, onSuccess }) {
             <textarea
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="w-full p-2 border rounded"
               rows={3}
+              className="w-full px-3 py-3 border rounded-md text-sm sm:text-base"
               placeholder="Additional notes"
             />
           </div>
 
           {/* ACTIONS */}
-          <div className="flex justify-end gap-3 pt-3">
+          <div className="flex flex-col sm:flex-row gap-3 sm:justify-end pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded"
+              className="w-full sm:w-auto px-4 py-2 border rounded-md"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="bg-[#7c1d1d] text-white px-4 py-2 rounded"
+              className="w-full sm:w-auto bg-[#7c1d1d] text-white px-5 py-2 rounded-md"
             >
               Save Request
             </button>

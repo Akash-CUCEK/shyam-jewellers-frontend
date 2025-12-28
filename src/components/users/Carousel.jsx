@@ -5,10 +5,7 @@ export default function Carousel() {
   const [images, setImages] = useState([]);
   const [current, setCurrent] = useState(0);
 
-  // 🔒 Prevent double API call (React 18 strict mode)
   const fetchedRef = useRef(false);
-
-  /* 🔹 FETCH OFFER IMAGES */
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
