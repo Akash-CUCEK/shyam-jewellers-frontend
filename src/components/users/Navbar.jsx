@@ -46,16 +46,33 @@ export default function Navbar() {
 
   return (
     <header className="bg-white shadow sticky top-0 z-50 w-full">
-      {/* TOP BAR */}
+      {/* ================= TOP BAR ================= */}
       <div className="flex items-center justify-between px-4 md:px-10 py-2 border-b">
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/logo.jpg" className="w-9 h-9 object-contain" />
-          <span className="text-lg md:text-2xl font-bold text-[#7c1d1d]">
-            Shyam Jewellers
-          </span>
-        </Link>
+        {/* LEFT */}
+        <div className="flex items-center gap-2">
+          {/* MOBILE HAMBURGER */}
+          <button
+            className="md:hidden text-2xl text-[#7c1d1d]"
+            onClick={() => setMobileMenuOpen((p) => !p)}
+          >
+            <HiOutlineMenuAlt2 />
+          </button>
 
-        {/* SEARCH DESKTOP */}
+          {/* DESKTOP LOGO */}
+          <Link to="/" className="hidden md:flex items-center gap-2">
+            <img src="/logo.jpg" className="w-9 h-9 object-contain" />
+            <span className="text-lg md:text-2xl font-bold text-[#7c1d1d]">
+              Shyam Jewellers
+            </span>
+          </Link>
+        </div>
+
+        {/* MOBILE CENTER TITLE */}
+        <span className="md:hidden text-base font-bold text-[#7c1d1d]">
+          Shyam Jewellers
+        </span>
+
+        {/* DESKTOP SEARCH (SAME LINE – UNCHANGED) */}
         <div className="hidden md:flex items-center w-full max-w-2xl mx-6 border border-[#7c1d1d] rounded-full px-4 py-1.5">
           <FaSearch className="text-[#7c1d1d] mr-2" />
           <input
@@ -66,7 +83,9 @@ export default function Navbar() {
           <FaMicrophone className="text-[#7c1d1d]" />
         </div>
 
+        {/* RIGHT ICONS */}
         <div className="flex items-center gap-4 text-[#7c1d1d] text-xl">
+          {/* DESKTOP ICONS */}
           <div className="hidden md:flex gap-5">
             <HoverIcon href="/reviews" icon={<PiCrown />} label="Reviews" />
             <HoverIcon
@@ -87,17 +106,35 @@ export default function Navbar() {
               </>
             )}
           </div>
+
+          {/* MOBILE ICONS */}
+          {isLoggedIn && (
+            <>
+              <Link to="/wishlist" className="md:hidden">
+                <FaHeart />
+              </Link>
+              <Link to="/cart" className="md:hidden">
+                <FaShoppingBag />
+              </Link>
+            </>
+          )}
+
           <UserDropdown />
-          <button
-            className="md:hidden"
-            onClick={() => setMobileMenuOpen((p) => !p)}
-          >
-            <HiOutlineMenuAlt2 />
-          </button>
         </div>
       </div>
 
-      {/* NAVBAR */}
+      {/* ================= MOBILE SEARCH ================= */}
+      <div className="md:hidden px-4 py-2 border-b">
+        <div className="flex items-center border border-[#7c1d1d] rounded-full px-3 py-1.5">
+          <FaSearch className="text-[#7c1d1d] mr-2" />
+          <input
+            className="flex-grow outline-none text-sm"
+            placeholder="Search jewellery..."
+          />
+        </div>
+      </div>
+
+      {/* ================= NAVBAR ================= */}
       <nav
         className={`${
           mobileMenuOpen ? "block" : "hidden"
@@ -170,6 +207,7 @@ export default function Navbar() {
   );
 }
 
+/* ================= NAV ITEM ================= */
 function NavItem({ icon, label, hideIcon, onClick }) {
   return (
     <div
@@ -186,6 +224,7 @@ function NavItem({ icon, label, hideIcon, onClick }) {
   );
 }
 
+/* ================= HOVER ICON ================= */
 function HoverIcon({ href, icon, label }) {
   return (
     <div className="relative group">
